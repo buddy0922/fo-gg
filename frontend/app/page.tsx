@@ -1,5 +1,5 @@
 import SearchBox from "@/app/components/SearchBox";
-
+import { Suspense } from "react";
 export default function Home() {
   return (
     <main className="min-h-screen flex items-center justify-center px-6">
@@ -25,9 +25,11 @@ export default function Home() {
         </div>
 
         {/* 검색 박스 */}
-        <div className="bg-[#0F1218] border border-[#1C2230] rounded-2xl p-4 shadow-xl">
-          <SearchBox />
-        </div>
+        <Suspense fallback={null}>
+          <div className="bg-[#0F1218] border border-[#1C2230] rounded-2xl p-4">
+            <SearchBox />
+          </div>
+        </Suspense>
 
         {/* 하단 힌트 */}
         <p className="text-xs text-gray-500">
