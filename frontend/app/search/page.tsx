@@ -3,6 +3,7 @@ import SearchBox from "@/app/components/SearchBox";
 import { fetchSearch } from "@/lib/search";
 import { Suspense } from "react";
 
+export const dynamic = "force-dynamic";
 /* ===============================
    API 호출
 ================================ */
@@ -77,7 +78,10 @@ export default async function SearchPage({
 }: {
   searchParams: { nickname?: string };
 }) {
-  const nickname = searchParams.nickname;
+  const nickname =
+  Array.isArray(searchParams.nickname)
+    ? searchParams.nickname[0]
+    : searchParams.nickname;
 
   if (!nickname) {
     return (
