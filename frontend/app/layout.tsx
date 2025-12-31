@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Suspense } from "react";
 import "./globals.css";
+
 import Header from "@/app/components/Header";
+import ClientLoading from "@/app/ClientLoading";
 import { LoadingProvider } from "@/app/providers/LoadingProvider";
 
 const geistSans = Geist({
@@ -32,6 +35,12 @@ export default function RootLayout({
         <LoadingProvider>
           <Header />
 
+          {/* 🔥 useSearchParams 사용 → Suspense 필수 */}
+          <Suspense fallback={null}>
+            <ClientLoading />
+          </Suspense>
+
+          {/* 메인 컨텐츠 */}
           <main className="pt-16 min-h-screen">
             {children}
           </main>
