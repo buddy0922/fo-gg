@@ -1,6 +1,6 @@
 "use client";
 
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname} from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import LoadingOverlay from "@/app/LoadingOverlay";
 
@@ -9,7 +9,6 @@ const MIN_VISIBLE = 600; // 뜨면 최소 유지
 
 export default function ClientLoading() {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
 
   const [loading, setLoading] = useState(false);
 
@@ -52,7 +51,7 @@ export default function ClientLoading() {
       if (showTimer.current) clearTimeout(showTimer.current);
       if (hideTimer.current) clearTimeout(hideTimer.current);
     };
-  }, [pathname, searchParams]);
+  }, [pathname]);
 
   return <LoadingOverlay loading={loading} />;
 }
