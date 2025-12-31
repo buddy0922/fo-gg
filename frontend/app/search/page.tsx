@@ -1,20 +1,18 @@
 import Link from "next/link";
 import SearchBox from "@/app/components/SearchBox";
+import { fetchSearch } from "@/lib/search";
 
 /* ===============================
    API 호출
 ================================ */
 async function getSearch(nickname: string) {
-  const baseUrl =
-    process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
-
-  const res = await fetch(
-    `${baseUrl}/api/search?nickname=${encodeURIComponent(nickname)}`,
-    { cache: "no-store" }
-  );
-
-  if (!res.ok) return null;
-  return res.json();
+  try {
+    return await fetchSearch(nickname);
+  } catch (err: any) {
+    const msg = String(err?.message ?? "");
+    if (msg.includes("OPENAPI00007")) return { error: "temporary_unavailable" };
+    return { error: "upstream_error" };
+  }
 }
 
 /* ===============================
@@ -76,9 +74,9 @@ function formatDate(dateString?: string) {
 export default async function SearchPage({
   searchParams,
 }: {
-  searchParams: Promise<{ nickname?: string }>;
+  searchParams: { nickname?: string };
 }) {
-  const { nickname } = await searchParams;
+  const nickname = searchParams.nickname;
 
   if (!nickname) {
     return (

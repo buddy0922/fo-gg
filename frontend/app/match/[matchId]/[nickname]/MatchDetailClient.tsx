@@ -20,7 +20,7 @@ export default function MatchDetailClient({
   ============================== */
   const [rawHome, rawAway] = match.matchInfo;
 
-  const searchNickname = decodeURIComponent(nickname).trim().toLowerCase();
+  const searchNickname = nickname.trim().toLowerCase();
   const homeNick = String(rawHome.nickname ?? "").trim().toLowerCase();
   const awayNick = String(rawAway.nickname ?? "").trim().toLowerCase();
 

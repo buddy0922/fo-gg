@@ -22,7 +22,9 @@ export async function GET(req: Request) {
     );
   }
 
-  const nickname = decodeURIComponent(rawNickname).trim();
+  
+
+  const nickname = rawNickname.trim();
 const normalizedNickname = nickname.toLowerCase();
 
   // ✅ 1️⃣ 캐시 키 생성

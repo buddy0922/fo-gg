@@ -15,10 +15,8 @@ export default function SearchBox({
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-  if (loading) {
-    setLoading(false);
-  }
-}, [pathname, searchParams]);
+  if (loading) setLoading(false);
+}, [pathname, searchParams, loading]);
 
   const onSearch = async () => {
   if (!nickname.trim() || loading) return;
