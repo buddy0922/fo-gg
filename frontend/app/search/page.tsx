@@ -1,6 +1,7 @@
 import Link from "next/link";
 import SearchBox from "@/app/components/SearchBox";
 import { fetchSearch } from "@/lib/search";
+import { Suspense } from "react";
 
 /* ===============================
    API 호출
@@ -81,7 +82,9 @@ export default async function SearchPage({
   if (!nickname) {
     return (
       <div className="max-w-3xl mx-auto p-6 text-white space-y-6">
-        <SearchBox />
+        <Suspense fallback={null}>
+  <SearchBox />
+</Suspense>
         <p className="text-gray-400">닉네임을 입력해 주세요.</p>
       </div>
     );
@@ -92,7 +95,9 @@ export default async function SearchPage({
   if (!data || data.error) {
   return (
     <div className="max-w-3xl mx-auto p-6 text-white space-y-6">
-      <SearchBox initialValue={nickname} />
+      <Suspense fallback={null}>
+  <SearchBox initialValue={nickname} />
+</Suspense>
 
       <div className="bg-[#1B2230] border border-[#1C2230] rounded-xl p-4">
         {data?.error === "temporary_unavailable" ? (
