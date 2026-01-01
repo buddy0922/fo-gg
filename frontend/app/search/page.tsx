@@ -2,8 +2,10 @@ import Link from "next/link";
 import SearchBox from "@/app/components/SearchBox";
 import { fetchSearch } from "@/lib/search";
 import { Suspense } from "react";
+
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+
 /* ===============================
    API 호출
 ================================ */
@@ -68,26 +70,19 @@ function getSummary(matches: any[]) {
 function formatDate(dateString?: string) {
   if (!dateString) return "날짜 정보 없음";
   const d = new Date(dateString);
-  return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, "0")}.${String(
-    d.getDate()
-  ).padStart(2, "0")}`;
+  return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(
+    2,
+    "0"
+  )}.${String(d.getDate()).padStart(2, "0")}`;
 }
 
 export default async function SearchPage({
   searchParams,
 }: {
-  searchParams: Promise<{ nickname?: string }>;
-}) {
-  const { nickname } = await searchParams;
-
-  export default async function SearchPage({
-  searchParams,
-}: {
   searchParams: { nickname?: string | string[] };
 }) {
   const raw = searchParams?.nickname;
-  const nickname =
-    (Array.isArray(raw) ? raw[0] : raw)?.trim() || "";
+  const nickname = (Array.isArray(raw) ? raw[0] : raw)?.trim() || "";
 
   if (!nickname) {
     return (
@@ -101,56 +96,43 @@ export default async function SearchPage({
   const data = await getSearch(nickname);
 
   if (!data || data.error) {
-  return (
-    <div className="max-w-3xl mx-auto p-6 text-white space-y-6">
-      <Suspense fallback={null}>
-  <SearchBox initialValue={nickname} />
-</Suspense>
+    return (
+      <div className="max-w-3xl mx-auto p-6 text-white space-y-6">
+        <Suspense fallback={null}>
+          <SearchBox initialValue={nickname} />
+        </Suspense>
 
-      <div className="bg-[#1B2230] border border-[#1C2230] rounded-xl p-4">
-        {data?.error === "temporary_unavailable" ? (
-          <>
-            <h1 className="font-bold text-lg">
-              넥슨 서버가 일시적으로 불안정합니다
-            </h1>
-            <p className="text-gray-400 mt-1">
-              잠시 후 다시 시도해 주세요.
-            </p>
+        <div className="bg-[#1B2230] border border-[#1C2230] rounded-xl p-4">
+          {data?.error === "temporary_unavailable" ? (
+            <>
+              <h1 className="font-bold text-lg">넥슨 서버가 일시적으로 불안정합니다</h1>
+              <p className="text-gray-400 mt-1">잠시 후 다시 시도해 주세요.</p>
 
-            {/* 재시도 버튼 */}
-            <Link
-              href={`/search?nickname=${encodeURIComponent(nickname)}`}
-              className="inline-block mt-4 px-4 py-2 rounded bg-[#34E27A] text-black font-semibold hover:opacity-90"
-            >
-              다시 시도
-            </Link>
-          </>
-        ) : (
-          <>
-            <h1 className="font-bold text-lg">
-              유저를 찾을 수 없습니다
-            </h1>
-            <p className="text-gray-400 mt-1">
-              닉네임: {nickname}
-            </p>
-          </>
-        )}
+              <Link
+                href={`/search?nickname=${encodeURIComponent(nickname)}`}
+                className="inline-block mt-4 px-4 py-2 rounded bg-[#34E27A] text-black font-semibold hover:opacity-90"
+              >
+                다시 시도
+              </Link>
+            </>
+          ) : (
+            <>
+              <h1 className="font-bold text-lg">유저를 찾을 수 없습니다</h1>
+              <p className="text-gray-400 mt-1">닉네임: {nickname}</p>
+            </>
+          )}
+        </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
 
   const matches = data.matches ?? [];
   const { winRate, streak, streakType } = getSummary(matches);
 
   return (
     <div className="max-w-3xl mx-auto p-6 space-y-6 text-white">
-      {/* 🔍 검색창 */}
       <SearchBox initialValue={nickname} />
 
-      {/* ===============================
-          유저 요약 카드
-      =============================== */}
       <div className="bg-[#1B2230] rounded-xl p-6 space-y-4 border border-[#1C2230]">
         <h1 className="text-2xl font-extrabold">{nickname}</h1>
 
@@ -175,35 +157,22 @@ export default async function SearchPage({
 
         <div className="flex gap-1">
           {matches.slice(0, 10).map((m: any, idx: number) => (
-            <div
-              key={idx}
-              className={`h-2 flex-1 rounded ${resultBarColor(m.result)}`}
-            />
+            <div key={idx} className={`h-2 flex-1 rounded ${resultBarColor(m.result)}`} />
           ))}
         </div>
       </div>
 
-      {/* ===============================
-          전적 카드 리스트 (STEP 4C)
-      =============================== */}
       <div className="space-y-6">
         {matches.map((m: any) => (
           <Link
-  key={m.matchId}
-  href={`/match/${m.matchId}/${encodeURIComponent(nickname)}`}
-  className="block"
->
+            key={m.matchId}
+            href={`/match/${m.matchId}/${encodeURIComponent(nickname)}`}
+            className="block"
+          >
             <div
               className={`
-                relative
-                rounded-2xl
-                px-6
-                py-5
-                space-y-3
-                transition-all
-                duration-200
-                hover:-translate-y-0.5
-                hover:shadow-lg
+                relative rounded-2xl px-6 py-5 space-y-3 transition-all duration-200
+                hover:-translate-y-0.5 hover:shadow-lg
                 ${
                   m.result === "승"
                     ? "bg-gradient-to-r from-[#0f2f1f] to-[#134a31]"
@@ -213,7 +182,6 @@ export default async function SearchPage({
                 }
               `}
             >
-              {/* 좌측 컬러 바 */}
               <div
                 className={`
                   absolute left-0 top-0 h-full w-1.5 rounded-l-2xl
@@ -227,12 +195,10 @@ export default async function SearchPage({
                 `}
               />
 
-              {/* 상단 메타 정보 */}
               <div className="text-xs text-gray-300">
                 {formatDate(m.matchDate)} · 공식 경기
               </div>
 
-              {/* 메인 정보 */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <div className="text-xl font-extrabold text-white w-10 text-center">
@@ -242,15 +208,11 @@ export default async function SearchPage({
                     <div className="text-base font-semibold text-white">
                       vs {m.opponent}
                     </div>
-                    <div className="text-sm text-gray-300">
-                      {m.score}
-                    </div>
+                    <div className="text-sm text-gray-300">{m.score}</div>
                   </div>
                 </div>
 
-                <div className="text-sm text-gray-300">
-                  상세보기 →
-                </div>
+                <div className="text-sm text-gray-300">상세보기 →</div>
               </div>
             </div>
           </Link>
