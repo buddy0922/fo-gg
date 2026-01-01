@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
 export default function SearchBox({
@@ -10,13 +10,12 @@ export default function SearchBox({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const [nickname, setNickname] = useState(initialValue);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
   if (loading) setLoading(false);
-}, [pathname, searchParams, loading]);
+}, [pathname, loading]);
 
   const onSearch = async () => {
   if (!nickname.trim() || loading) return;
