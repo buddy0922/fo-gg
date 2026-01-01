@@ -2,8 +2,8 @@ import Link from "next/link";
 import SearchBox from "@/app/components/SearchBox";
 import { fetchSearch } from "@/lib/search";
 import { Suspense } from "react";
-
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 /* ===============================
    API 호출
 ================================ */
@@ -76,19 +76,23 @@ function formatDate(dateString?: string) {
 export default async function SearchPage({
   searchParams,
 }: {
-  searchParams: { nickname?: string };
+  searchParams: Promise<{ nickname?: string }>;
 }) {
+  const { nickname } = await searchParams;
+
+  export default async function SearchPage({
+  searchParams,
+}: {
+  searchParams: { nickname?: string | string[] };
+}) {
+  const raw = searchParams?.nickname;
   const nickname =
-  Array.isArray(searchParams.nickname)
-    ? searchParams.nickname[0]
-    : searchParams.nickname;
+    (Array.isArray(raw) ? raw[0] : raw)?.trim() || "";
 
   if (!nickname) {
     return (
       <div className="max-w-3xl mx-auto p-6 text-white space-y-6">
-        <Suspense fallback={null}>
-  <SearchBox />
-</Suspense>
+        <SearchBox />
         <p className="text-gray-400">닉네임을 입력해 주세요.</p>
       </div>
     );
