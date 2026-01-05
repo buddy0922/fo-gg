@@ -1,6 +1,20 @@
 import { NextResponse } from "next/server";
-import api from "@/lib/api";
 import { getCache, setCache } from "@/app/lib/serverCache";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+async function nxFetch(path: string) {
+  const apiKey = process.env.NEXON_API_KEY;
+  if (!apiKey) throw new Error("missing_api_key");
+
+  const res = await fetch(`https://open.api.nexon.com/fconline/v1.0${path}`, {
+    headers: { "x-nxopen-api-key": apiKey },
+    cache: "no-store",
+  });
+
+  return res;
+}
 
 async function getDivisionMeta() {
   const res = await fetch(
@@ -16,106 +30,85 @@ export async function GET(req: Request) {
   const rawNickname = searchParams.get("nickname");
 
   if (!rawNickname) {
-    return NextResponse.json(
-      { error: "nickname_required" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "nickname_required" }, { status: 400 });
   }
-
-  
 
   const nickname = rawNickname.trim();
-const normalizedNickname = nickname.toLowerCase();
-
-  // ✅ 1️⃣ 캐시 키 생성
-  const cacheKey = `search:${normalizedNickname}`;
-
-  // ✅ 2️⃣ 캐시 먼저 확인
-  const cached = getCache(cacheKey);
-  if (cached) {
-    return NextResponse.json(cached);
+  if (!nickname) {
+    return NextResponse.json({ error: "nickname_required" }, { status: 400 });
   }
 
+  const cacheKey = `search:${nickname.toLowerCase()}`;
+  const cached = getCache(cacheKey);
+  if (cached) return NextResponse.json(cached);
+
   try {
-    /* ===============================
-       1️⃣ nickname → ouid
-    =============================== */
-    let ouid: string | undefined;
+    // 1) 닉네임 -> ouid
+    const userRes = await nxFetch(`/users?nickname=${encodeURIComponent(nickname)}`);
 
-    try {
-      const idResp = await api.get("/id", { params: { nickname } });
-      ouid = idResp.data?.ouid;
-    } catch (err: any) {
-      const apiError = err?.response?.data?.error?.name;
-
-      if (apiError === "OPENAPI00007") {
-        return NextResponse.json(
-          { error: "temporary_unavailable" },
-          { status: 503 }
-        );
-      }
-
-      console.error("ID API ERROR:", err?.response?.data ?? err);
+    if (userRes.status === 503) {
+      return NextResponse.json({ error: "temporary_unavailable" }, { status: 503 });
+    }
+    if (userRes.status === 404) {
+      return NextResponse.json({ error: "user_not_found" }, { status: 404 });
+    }
+    if (!userRes.ok) {
+      const text = await userRes.text().catch(() => "");
       return NextResponse.json(
-        { error: "upstream_error" },
+        { error: "upstream_error", status: userRes.status, body: text.slice(0, 500) },
         { status: 500 }
       );
     }
 
+    const user = await userRes.json();
+    const ouid: string | undefined = user?.ouid;
+
     if (!ouid) {
+      return NextResponse.json({ error: "user_not_found" }, { status: 404 });
+    }
+
+    // 2) 최고 티어
+    const maxDivRes = await nxFetch(`/users/${encodeURIComponent(ouid)}/maxdivision`);
+    const maxDiv = maxDivRes.ok ? await maxDivRes.json() : [];
+    const list = Array.isArray(maxDiv) ? maxDiv : [];
+
+    const official = list.filter((d: any) => d.matchType === 50);
+    const highestDivision =
+      official.length > 0 ? Math.max(...official.map((d: any) => d.division)) : undefined;
+
+    const meta = await getDivisionMeta();
+    const highestDivisionName =
+      highestDivision && Array.isArray(meta)
+        ? meta.find((d: any) => d.divisionId === highestDivision)?.divisionName
+        : undefined;
+
+    // 3) 최근 경기 matchId들
+    const matchesRes = await nxFetch(
+      `/users/${encodeURIComponent(ouid)}/matches?matchtype=50&offset=0&limit=10`
+    );
+
+    if (matchesRes.status === 503) {
+      return NextResponse.json({ error: "temporary_unavailable" }, { status: 503 });
+    }
+    if (!matchesRes.ok) {
+      const text = await matchesRes.text().catch(() => "");
       return NextResponse.json(
-        { error: "user_not_found" },
-        { status: 404 }
+        { error: "upstream_error", status: matchesRes.status, body: text.slice(0, 500) },
+        { status: 500 }
       );
     }
 
-    /* ===============================
-       2️⃣ 역대 최고 티어 (공식 경기)
-    =============================== */
-    const maxDivResp = await api.get("/user/maxdivision", {
-      params: { ouid },
-    });
+    const matchIds: string[] = (await matchesRes.json()) ?? [];
 
-    const list = Array.isArray(maxDivResp.data)
-      ? maxDivResp.data
-      : [];
-
-    const official = list.filter((d: any) => d.matchType === 50);
-
-    const highestDivision =
-      official.length > 0
-        ? Math.max(...official.map((d: any) => d.division))
-        : undefined;
-
-    /* ===============================
-       3️⃣ divisionId → 이름
-    =============================== */
-    const meta = await getDivisionMeta();
-    let highestDivisionName: string | undefined;
-
-    if (highestDivision && Array.isArray(meta)) {
-      highestDivisionName = meta.find(
-        (d: any) => d.divisionId === highestDivision
-      )?.divisionName;
-    }
-
-    /* ===============================
-       4️⃣ 최근 경기
-    =============================== */
-    const matchResp = await api.get("/user/match", {
-      params: { ouid, matchtype: 50, offset: 0, limit: 10 },
-    });
-
-    const matchIds: string[] = matchResp.data || [];
+    // 4) match detail (너 UI가 쓰는 형태로 가공)
     const results: any[] = [];
 
     for (const matchId of matchIds) {
       try {
-        const detailResp = await api.get("/match-detail", {
-          params: { matchid: matchId },
-        });
+        const detailRes = await nxFetch(`/matches/${encodeURIComponent(matchId)}`);
+        if (!detailRes.ok) continue;
 
-        const match = detailResp.data;
+        const match = await detailRes.json();
         const infos = match?.matchInfo;
         if (!infos || infos.length < 2) continue;
 
@@ -128,9 +121,7 @@ const normalizedNickname = nickname.toLowerCase();
 
         results.push({
           matchId,
-          result:
-            myGoal > enemyGoal ? "승" :
-            myGoal < enemyGoal ? "패" : "무",
+          result: myGoal > enemyGoal ? "승" : myGoal < enemyGoal ? "패" : "무",
           score: `${myGoal} : ${enemyGoal}`,
           opponent: enemy.nickname,
           matchDate: match.matchDate,
@@ -142,35 +133,17 @@ const normalizedNickname = nickname.toLowerCase();
     }
 
     const response = {
-  ouid,
-  user: {
-    nickname,
-    highestDivision,
-    highestDivisionName,
-  },
-  matches: results,
-};
+      ouid,
+      user: { nickname, highestDivision, highestDivisionName },
+      matches: results,
+    };
 
-// ✅ 3️⃣ 캐시에 저장 (60초)
-setCache(cacheKey, response, 60);
-
-return NextResponse.json(response);
-
-  } catch (err: any) {
-    const apiError = err?.response?.data?.error?.name;
-
-    if (apiError === "OPENAPI00007") {
-      return NextResponse.json(
-        { error: "temporary_unavailable" },
-        { status: 503 }
-      );
-    }
-
-    console.error("SEARCH API ERROR:", err?.response?.data ?? err);
+    setCache(cacheKey, response, 60);
+    return NextResponse.json(response);
+  } catch (e: any) {
     return NextResponse.json(
-      { error: "upstream_error" },
+      { error: "upstream_error", message: String(e?.message ?? e) },
       { status: 500 }
     );
   }
 }
-

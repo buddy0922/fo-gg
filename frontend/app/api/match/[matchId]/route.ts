@@ -1,66 +1,52 @@
 import { NextResponse } from "next/server";
-import api from "@/lib/api";
-import { getCache, setCache } from "@/app/lib/serverCache";
 
-// ⏱ retry용 sleep
-const sleep = (ms: number) =>
-  new Promise((resolve) => setTimeout(resolve, ms));
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export async function GET(
-  req: Request,
-  context: { params: Promise<{ matchId: string }> }
+  _req: Request,
+  { params }: { params: { matchId: string } }
 ) {
-  const { matchId } = await context.params;
-
-  const cacheKey = `match:${matchId}`;
-
-  // ✅ 1️⃣ 캐시 먼저
-  const cached = getCache(cacheKey);
-  if (cached) {
-    return NextResponse.json(cached);
+  const apiKey = process.env.NEXON_API_KEY;
+  if (!apiKey) {
+    return NextResponse.json({ error: "missing_api_key" }, { status: 500 });
   }
 
-  let lastError: any = null;
+  const matchId = params.matchId?.trim();
+  if (!matchId) {
+    return NextResponse.json({ error: "matchId_required" }, { status: 400 });
+  }
 
-  // ✅ 2️⃣ 최대 2회 시도 (1회 retry)
-  for (let attempt = 0; attempt < 2; attempt++) {
-    try {
-      const detailResp = await api.get("/match-detail", {
-        params: { matchid: matchId },
-      });
+  const url = `https://open.api.nexon.com/fconline/v1.0/matches/${encodeURIComponent(
+    matchId
+  )}`;
 
-      const data = detailResp.data;
+  try {
+    const res = await fetch(url, {
+      headers: { "x-nxopen-api-key": apiKey },
+      cache: "no-store",
+    });
 
-      // ✅ 성공 시 캐시 (30초)
-      setCache(cacheKey, data, 180);
-
-      return NextResponse.json(data);
-
-    } catch (err: any) {
-      const apiError = err?.response?.data?.error?.name;
-      lastError = apiError;
-
-      // 🔥 넥슨 서버 일시 장애 → retry 대상
-      if (apiError === "OPENAPI00007" && attempt === 0) {
-        await sleep(1000); // 1초 대기 후 재시도
-        continue;
-      }
-
-      break;
+    if (res.status === 503) {
+      return NextResponse.json({ error: "temporary_unavailable" }, { status: 503 });
     }
-  }
+    if (res.status === 404) {
+      return NextResponse.json({ error: "not_found" }, { status: 404 });
+    }
 
-  // ✅ retry 실패 후 처리
-  if (lastError === "OPENAPI00007") {
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      return NextResponse.json(
+        { error: "upstream_error", status: res.status, body: text.slice(0, 500) },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json(await res.json());
+  } catch (e: any) {
     return NextResponse.json(
-      { error: "temporary_unavailable" },
-      { status: 503 }
+      { error: "upstream_error", message: String(e?.message ?? e) },
+      { status: 500 }
     );
   }
-
-  console.error("MATCH DETAIL ERROR:", lastError);
-  return NextResponse.json(
-    { error: "upstream_error" },
-    { status: 500 }
-  );
 }
