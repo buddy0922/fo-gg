@@ -79,10 +79,18 @@ function formatDate(dateString?: string) {
 export default async function SearchPage({
   searchParams,
 }: {
-  searchParams: { nickname?: string | string[] };
+  searchParams: any; // ✅ 일단 any로 받아서 안정화
 }) {
-  const raw = searchParams?.nickname;
+  // ✅ Promise든 객체든 둘 다 대응
+  const sp = await Promise.resolve(searchParams);
+
+  const raw = sp?.nickname;
   const nickname = (Array.isArray(raw) ? raw[0] : raw)?.trim() || "";
+
+  // ✅ 디버깅용 (한번만 켜봐)
+  // if (!nickname) {
+  //   return <pre className="text-white p-6">{JSON.stringify(sp, null, 2)}</pre>;
+  // }
 
   if (!nickname) {
     return (
