@@ -1,22 +1,22 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   context: { params: { matchId: string } }
 ) {
-  const apiKey = process.env.NEXON_API_KEY;
+  const { matchId } = context.params;
 
+  const apiKey = process.env.NEXON_API_KEY;
   if (!apiKey) {
     return NextResponse.json(
       { error: "missing_api_key" },
       { status: 500 }
     );
   }
-
-  const { matchId } = context.params;
 
   const url = `https://open.api.nexon.com/fconline/v1.0/matches/${matchId}`;
 
