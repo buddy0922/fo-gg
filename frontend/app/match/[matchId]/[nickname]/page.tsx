@@ -1,23 +1,57 @@
 import MatchDetailClient from "./MatchDetailClient";
+import { headers } from "next/headers";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+/* ===============================
+   API 호출 (Server-safe)
+================================ */
 async function getMatchDetail(matchId: string) {
-  const res = await fetch(`/api/match/${matchId}`, { cache: "no-store" });
+  const h = await headers();
 
-  if (res.status === 503) return { error: "temporary_unavailable" as const };
-  if (res.status === 404) return { error: "not_found" as const };
-  if (!res.ok) return { error: "unknown" as const };
+  const host =
+    h.get("x-forwarded-host") ??
+    h.get("host") ??
+    "localhost:3000";
+
+  const proto =
+    h.get("x-forwarded-proto") ??
+    "http";
+
+  const baseUrl = `${proto}://${host}`;
+
+  const res = await fetch(`${baseUrl}/api/match/${matchId}`, {
+    cache: "no-store",
+  });
+
+  // ✅ 실패면 body까지 읽어서 같이 넘기기
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    return {
+      error: "unknown" as const,
+      status: res.status,
+      body: text.slice(0, 500), // 너무 길면 잘라
+      baseUrl,
+    };
+  }
 
   return res.json();
 }
 
+/* ===============================
+   Page
+================================ */
 export default async function MatchDetailPage({
   params,
 }: {
-  params: Promise<{ matchId: string; nickname: string }>;
+  params: { matchId: string; nickname: string };
 }) {
-  const { matchId, nickname } = await params;
+  const { matchId, nickname } = params;
+
   const match = await getMatchDetail(matchId);
 
+  /* ===== 에러 처리 ===== */
   if (!match || "error" in match) {
     if (match?.error === "temporary_unavailable") {
       return (
@@ -30,7 +64,6 @@ export default async function MatchDetailPage({
               잠시 후 다시 시도해주세요.
             </p>
 
-            {/* Server Component라 onClick 못 씀 → 링크로 처리 */}
             <a
               href={`/match/${matchId}/${encodeURIComponent(nickname)}`}
               className="inline-block px-4 py-2 bg-[#34E27A] text-black rounded font-semibold hover:opacity-90"
@@ -58,13 +91,23 @@ export default async function MatchDetailPage({
     }
 
     return (
-      <div className="max-w-3xl mx-auto p-6">
-        <div className="bg-[#1B2230] border border-[#1C2230] rounded-xl p-6 text-white">
-          알 수 없는 오류가 발생했습니다.
-        </div>
-      </div>
-    );
+  <div className="max-w-3xl mx-auto p-6">
+    <div className="bg-[#1B2230] border border-[#1C2230] rounded-xl p-6 text-white space-y-2">
+      <p className="text-lg font-semibold">알 수 없는 오류가 발생했습니다.</p>
+      {"status" in match && (
+        <>
+          <p className="text-sm text-gray-300">status: {match.status}</p>
+          <p className="text-sm text-gray-300">baseUrl: {match.baseUrl}</p>
+          <pre className="text-xs whitespace-pre-wrap text-gray-400">
+            {match.body}
+          </pre>
+        </>
+      )}
+    </div>
+  </div>
+);
   }
 
+  /* ===== 정상 렌더 ===== */
   return <MatchDetailClient match={match} nickname={nickname} />;
 }
