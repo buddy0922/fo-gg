@@ -6,50 +6,34 @@ export const revalidate = 0;
 
 export async function GET(
   _request: NextRequest,
-  context: { params: { matchId: string } }
+  context: { params: Promise<{ matchId: string }> }
 ) {
-  const { matchId } = context.params;
+  const { matchId } = await context.params;
 
   const apiKey = process.env.NEXON_API_KEY;
   if (!apiKey) {
-    return NextResponse.json(
-      { error: "missing_api_key" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "missing_api_key" }, { status: 500 });
   }
 
   const url = `https://open.api.nexon.com/fconline/v1.0/matches/${matchId}`;
 
   try {
     const res = await fetch(url, {
-      headers: {
-        "x-nxopen-api-key": apiKey,
-      },
+      headers: { "x-nxopen-api-key": apiKey },
       cache: "no-store",
     });
 
     if (res.status === 503) {
-      return NextResponse.json(
-        { error: "temporary_unavailable" },
-        { status: 503 }
-      );
+      return NextResponse.json({ error: "temporary_unavailable" }, { status: 503 });
     }
-
     if (res.status === 404) {
-      return NextResponse.json(
-        { error: "not_found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "not_found" }, { status: 404 });
     }
 
     if (!res.ok) {
       const text = await res.text().catch(() => "");
       return NextResponse.json(
-        {
-          error: "upstream_error",
-          status: res.status,
-          body: text.slice(0, 500),
-        },
+        { error: "upstream_error", status: res.status, body: text.slice(0, 500) },
         { status: 500 }
       );
     }
