@@ -1,14 +1,14 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useGlobalLoading } from "@/app/providers/LoadingProvider";
+import { useLoading } from "@/app/providers/LoadingProvider";
 
 export default function NicknameLink({ nickname }: { nickname: string }) {
   const router = useRouter();
-  const { start } = useGlobalLoading();
+  const { setLoading } = useLoading();
 
   const onClick = () => {
-    start(); // 🔥 즉시 글로벌 로딩 시작
+    setLoading(true); // 🔥 즉시 글로벌 로딩 시작
     router.push(`/search?nickname=${encodeURIComponent(nickname)}`);
   };
 
