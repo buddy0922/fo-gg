@@ -1,29 +1,30 @@
 "use client";
 
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useMemo, useState } from "react";
+import LoadingOverlay from "@/app/LoadingOverlay";
 
-const LoadingContext = createContext<{
-  start: () => void;
-  stop: () => void;
-}>({
-  start: () => {},
-  stop: () => {},
-});
+type LoadingCtx = {
+  loading: boolean;
+  setLoading: (v: boolean) => void;
+};
 
-export function LoadingProvider({ children }: { children: React.ReactNode }) {
-  const [loading, setLoading] = useState(false);
+const Ctx = createContext<LoadingCtx | null>(null);
 
-  return (
-    <LoadingContext.Provider
-      value={{
-        start: () => setLoading(true),
-        stop: () => setLoading(false),
-      }}
-    >
-      {children}
-      {loading && <div id="global-loading-flag" />}
-    </LoadingContext.Provider>
-  );
+export function useLoading() {
+  const v = useContext(Ctx);
+  if (!v) throw new Error("useLoading must be used within LoadingProvider");
+  return v;
 }
 
-export const useGlobalLoading = () => useContext(LoadingContext);
+export default function LoadingProvider({ children }: { children: React.ReactNode }) {
+  const [loading, setLoading] = useState(false);
+
+  const value = useMemo(() => ({ loading, setLoading }), [loading]);
+
+  return (
+    <Ctx.Provider value={value}>
+      {children}
+      <LoadingOverlay loading={loading} />
+    </Ctx.Provider>
+  );
+}

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import SearchBox from "@/app/components/SearchBox";
+import { useLoading } from "@/app/providers/LoadingProvider";
 
 type ApiResult =
   | {
@@ -82,7 +83,7 @@ export default function SearchPageClient() {
   }, [sp]);
 
   const [data, setData] = useState<ApiResult | null>(null);
-  const [loading, setLoading] = useState(false);
+  const { setLoading } = useLoading();
 
   useEffect(() => {
     let ignore = false;
@@ -135,15 +136,6 @@ export default function SearchPageClient() {
     );
   }
 
-  // ✅ 로딩 중
-  if (loading && !data) {
-    return (
-      <div className="max-w-3xl mx-auto p-6 text-white space-y-6">
-        <SearchBox initialValue={nickname} />
-        <p className="text-gray-400">로딩 중…</p>
-      </div>
-    );
-  }
 
   // ✅ 에러 처리
   if (!data || "error" in data) {

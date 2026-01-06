@@ -5,7 +5,6 @@ import { TIPS } from "@/app/lib/tips";
 import { QUOTES } from "@/app/lib/quotes";
 
 export default function LoadingOverlay({ loading }: { loading: boolean }) {
-  const [visible, setVisible] = useState(false);
 
   const [tip] = useState(
     () => TIPS[Math.floor(Math.random() * TIPS.length)]

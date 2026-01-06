@@ -5,7 +5,7 @@ import "./globals.css";
 
 import Header from "@/app/components/Header";
 import ClientLoading from "@/app/ClientLoading";
-import { LoadingProvider } from "@/app/providers/LoadingProvider";
+import  LoadingProvider  from "@/app/providers/LoadingProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
