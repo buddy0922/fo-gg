@@ -5,6 +5,7 @@ import Link from "next/link";
 import SearchBox from "@/app/components/SearchBox";
 import ShotHeatmap from "./ShotHeatmap";
 import { TIER_IMAGE } from "@/app/lib/tier";
+import LossDiagnosis from "./LossDiagnosis";
 
 export default function MatchDetailClient({
   match,
@@ -118,6 +119,8 @@ export default function MatchDetailClient({
           {new Date(match.matchDate).toLocaleString("ko-KR")}
         </div>
       </div>
+
+      <LossDiagnosis my={leftTeam} enemy={rightTeam} />
 
       {/* ===============================
           히트맵

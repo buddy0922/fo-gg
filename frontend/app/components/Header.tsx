@@ -1,4 +1,5 @@
 import Link from "next/link";
+import ThemeToggle from "@/app/components/ThemeToggle";
 
 export default function Header() {
   return (
@@ -33,10 +34,11 @@ export default function Header() {
   서비스 안내
 </Link>
         </nav>
+        <ThemeToggle></ThemeToggle>
       </div>
 
       {/* FC ONLINE 스타일 포인트 라인 */}
-      <div className="h-[2px] bg-[#34E27A]" />
+      <div className="h-[10px] bg-[#34E27A]" />
     </header>
   );
 }

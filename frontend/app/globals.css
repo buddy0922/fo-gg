@@ -13,3 +13,62 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* ===== FO.GG Gradient Background (Light/Dark) ===== */
+
+:root {
+  /* Light mode gradient palette */
+  --bg-base: #f6fbff;
+  --bg-radial-1: rgba(92, 196, 255, 0.55);   /* sky */
+  --bg-radial-2: rgba(120, 255, 220, 0.35);  /* mint */
+  --bg-radial-3: rgba(255, 255, 255, 0.65);  /* white glow */
+  --bg-grid: rgba(0, 0, 0, 0.06);
+}
+
+html.dark {
+  /* Dark mode gradient palette */
+  --bg-base: #070b12;
+  --bg-radial-1: rgba(0, 255, 160, 0.35);    /* neon green */
+  --bg-radial-2: rgba(120, 120, 255, 0.22);  /* blue/purple */
+  --bg-radial-3: rgba(190, 0, 255, 0.18);    /* purple */
+  --bg-grid: rgba(255, 255, 255, 0.06);
+}
+
+/* 전체 배경을 body 자체가 아니라 "고정 레이어"로 깔아야
+   페이지 이동/스크롤에도 계속 유지되고, 컴포넌트 배경과도 잘 섞임 */
+body {
+  background: var(--bg-base);
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+
+  /* 2번 이미지(라이트) 느낌: 하늘색/민트 + 부드러운 화이트 */
+  background:
+    radial-gradient(900px 600px at 15% 20%, var(--bg-radial-1), transparent 60%),
+    radial-gradient(900px 650px at 70% 25%, var(--bg-radial-2), transparent 60%),
+    radial-gradient(900px 650px at 50% 80%, var(--bg-radial-3), transparent 60%),
+    linear-gradient(180deg, rgba(255,255,255,0.35), transparent 45%),
+    var(--bg-base);
+  filter: saturate(1.05);
+}
+
+/* 2번 이미지처럼 “은은한 패턴/그리드” 느낌 추가 (선택) */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+
+  background-image:
+    linear-gradient(var(--bg-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--bg-grid) 1px, transparent 1px);
+  background-size: 70px 70px;
+  opacity: 0.25;
+  mask-image: radial-gradient(800px 500px at 60% 35%, black 40%, transparent 75%);
+}

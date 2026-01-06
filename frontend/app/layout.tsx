@@ -6,6 +6,7 @@ import "./globals.css";
 import Header from "@/app/components/Header";
 import ClientLoading from "@/app/ClientLoading";
 import  LoadingProvider  from "@/app/providers/LoadingProvider";
+import ThemeProvider from "./providers/ThemeProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,19 +33,21 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-[#0B0F19] text-white`}
       >
-        <LoadingProvider>
-          <Header />
+        <ThemeProvider>
+          <LoadingProvider>
+            <Header />
 
-          {/* 🔥 useSearchParams 사용 → Suspense 필수 */}
-          <Suspense fallback={null}>
-            <ClientLoading />
-          </Suspense>
+            {/* 🔥 useSearchParams 사용 → Suspense 필수 */}
+            <Suspense fallback={null}>
+              <ClientLoading />
+            </Suspense>
 
-          {/* 메인 컨텐츠 */}
-          <main className="pt-16 min-h-screen">
-            {children}
-          </main>
-        </LoadingProvider>
+            {/* 메인 컨텐츠 */}
+            <main className="pt-16 min-h-screen">
+              {children}
+            </main>
+          </LoadingProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
