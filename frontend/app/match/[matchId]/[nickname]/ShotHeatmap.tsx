@@ -261,14 +261,24 @@ export default function ShotHeatmap({
   const maxDiff = Math.max(...momentumBins.map((b) => Math.abs(b.diff)), 1);
 
   return (
-    <div className="bg-[#1B2230] rounded-2xl p-6 border border-[#1C2230] space-y-6">
+    <div
+  className="rounded-2xl p-6 border space-y-6"
+  style={{ background: "var(--surface)", borderColor: "var(--border)" }}
+>
       <div className="flex items-center justify-between">
-        <h3 className="font-bold text-white">📊 경기 흐름 지표</h3>
-        <span className="text-[11px] text-gray-500">(슈팅, 골, 위치, 시점 기반)</span>
+        <h3 className="font-bold" style={{ color: "var(--text-main)" }}>
+  📊 경기 흐름 지표
+</h3>
+<span className="text-[11px]" style={{ color: "var(--text-sub)" }}>
+  (슈팅, 골, 위치, 시점 기반)
+</span>
       </div>
 
       {/* 모멘텀 */}
-      <div className="relative h-24 rounded-xl bg-[#121722] border border-[#1C2230] overflow-hidden">
+      <div
+  className="relative h-24 rounded-xl border overflow-hidden"
+  style={{ background: "var(--surface-2, var(--surface))", borderColor: "var(--border)" }}
+>
         <div className="absolute left-0 right-0 top-1/2 h-px bg-white/20" />
         <div className="flex h-full">
           {momentumBins.map((b) => {
@@ -293,7 +303,7 @@ export default function ShotHeatmap({
         </div>
       </div>
 
-      <div className="flex justify-between text-xs text-gray-400">
+      <div className="flex justify-between text-xs" style={{ color: "var(--text-sub)" }}>
         {normalGroups.map((g) => (
           <span key={g} className="flex-1 text-center">
             {g}
@@ -303,9 +313,10 @@ export default function ShotHeatmap({
 
       {/* 히트맵 */}
       <div
-        className="relative w-full aspect-[105/68] rounded-xl overflow-hidden border border-[#1C2230] bg-[#121722]"
-        onClick={() => setSelectedKey(null)}
-      >
+  className="relative w-full aspect-[105/68] rounded-xl overflow-hidden border"
+  style={{ background: "var(--surface-2, var(--surface))", borderColor: "var(--border)" }}
+  onClick={() => setSelectedKey(null)}
+>
         {/* 센터라인 */}
         <div className="absolute inset-y-0 left-1/2 w-px bg-white/20" />
 
@@ -390,7 +401,7 @@ export default function ShotHeatmap({
                 ${
                   selectedKey
                     ? isActive
-                      ? "opacity-100 scale-110 ring-2 ring-blue-400 ring-offset-2 ring-offset-[#121722] z-20"
+                      ? "opacity-100 scale-110 ring-2 ring-blue-400 ring-offset-2 z-20"
                       : "opacity-30"
                     : "opacity-100"
                 }
@@ -399,6 +410,9 @@ export default function ShotHeatmap({
                 left: `${leftPct}%`,
                 top: `${topPct}%`,
                 transform: "translate(-50%, -50%)",
+                ...(selectedKey && isActive
+    ? ({ ringOffsetColor: "var(--surface-2, var(--surface))" } as any)
+    : {}),
               }}
             />
           );
@@ -407,15 +421,22 @@ export default function ShotHeatmap({
 
       {/* 선택 정보 */}
       {selected && (
-        <div className="bg-[#161A23] rounded-xl p-4 text-sm border border-[#1C2230]">
-          <div className="font-semibold text-white">
+        <div
+  className="rounded-xl p-4 text-sm border"
+  style={{ background: "var(--surface)", borderColor: "var(--border)" }}
+>
+  <div className="font-semibold" style={{ color: "var(--text-main)" }}>
             {selected.isGoal ? "골" : "슈팅"} ·{" "}
             {selected.team === "home" ? home.nickname : away.nickname}
           </div>
-          <div className="text-gray-300">{getPlayerDisplay(selected.shot.spId).name}</div>
-          <div className="text-gray-400">{selected.label}분대</div>
-          <div className="text-gray-400">골대까지 거리: {selectedDistM?.toFixed(1)}m</div>
-        </div>
+          <div style={{ color: "var(--text-sub)" }}>
+    {getPlayerDisplay(selected.shot.spId).name}
+  </div>
+  <div style={{ color: "var(--text-sub)" }}>{selected.label}분대</div>
+  <div style={{ color: "var(--text-sub)" }}>
+    골대까지 거리: {selectedDistM?.toFixed(1)}m
+  </div>
+</div>
       )}
     </div>
   );

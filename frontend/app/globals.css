@@ -165,3 +165,38 @@ html.dark .header-surface {
     radial-gradient(700px 240px at 70% 0%, rgba(120,120,255,0.18), transparent 60%),
     linear-gradient(180deg, rgba(0,0,0,0.55), rgba(0,0,0,0.20));
 }
+
+@keyframes pop {
+  0% { transform: scale(0.96); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes ring-pop {
+  from { transform: scale(0.92); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+
+.ring-pop {
+  animation: ring-pop 420ms ease-out;
+}
+
+@keyframes ring-sweep {
+  from {
+    transform: rotate(-90deg) scale(0.95);
+    clip-path: inset(0 100% 0 0);
+    opacity: 0.2;
+  }
+  to {
+    transform: rotate(0deg) scale(1);
+    clip-path: inset(0 0 0 0);
+    opacity: 1;
+  }
+}
+
+.ring-animate {
+  animation: ring-sweep 900ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ring-fill {
+  transform-origin: center;
+}

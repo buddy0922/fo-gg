@@ -55,27 +55,33 @@ export default function MatchDetailClient({
       : undefined;
 
   return (
-    <div className="max-w-5xl mx-auto p-6 space-y-8 text-white">
+    <div className="max-w-5xl mx-auto p-6 space-y-8">
       {/* 🔍 전적 검색창 */}
       <SearchBox />
 
       {/* ===============================
           상단 스코어
       ============================== */}
-      <div className="bg-[#1B2230] border border-[#1C2230] rounded-xl p-4">
+      <div
+  className="border rounded-xl p-4"
+  style={{ background: "var(--surface)", borderColor: "var(--border)" }}
+>
         <div className="flex items-center">
           {/* 왼쪽: 전적검색 유저 */}
           <div className="flex-1 pr-10 mt-6 flex flex-col items-end">
             <Link
-              href={`/search?nickname=${encodeURIComponent(myNickname)}`}
-              className="text-2xl font-extrabold hover:underline"
-            >
-              {myNickname}
-            </Link>
+  href={`/search?nickname=${encodeURIComponent(myNickname)}`}
+  className="text-2xl font-extrabold hover:underline"
+  style={{ color: "var(--text-main)" }}
+>
+  {myNickname}
+</Link>
 
             {myTierName && (
               <div className="flex items-center gap-2 mt-1">
-                <span className="text-sm text-gray-400">{myTierName}</span>
+                <span className="text-sm" style={{ color: "var(--text-sub)" }}>
+  {myTierName}
+</span>
                 {myTierImg && (
                   <Image src={myTierImg} alt="my-tier" width={22} height={22} />
                 )}
@@ -84,7 +90,10 @@ export default function MatchDetailClient({
           </div>
 
           {/* 스코어 */}
-          <div className="mt-6 text-4xl font-extrabold px-6 whitespace-nowrap">
+          <div
+  className="mt-6 text-4xl font-extrabold px-6 whitespace-nowrap"
+  style={{ color: "var(--text-main)" }}
+>
             {leftTeam.shoot?.goalTotalDisplay ?? 0}
             {" : "}
             {rightTeam.shoot?.goalTotalDisplay ?? 0}
@@ -95,13 +104,16 @@ export default function MatchDetailClient({
             <Link
               href={`/search?nickname=${encodeURIComponent(enemyNickname)}`}
               className="text-2xl font-extrabold hover:underline"
+              style={{ color: "var(--text-main)" }}
             >
               {enemyNickname}
             </Link>
 
             {enemyTierName && (
               <div className="flex items-center gap-2 mt-1">
-                <span className="text-sm text-gray-400">{enemyTierName}</span>
+                <span className="text-sm" style={{ color: "var(--text-sub)" }}>
+  {enemyTierName}
+</span>
                 {enemyTierImg && (
                   <Image
                     src={enemyTierImg}
@@ -115,9 +127,9 @@ export default function MatchDetailClient({
           </div>
         </div>
 
-        <div className="text-center text-gray-400 text-sm mt-2">
-          {new Date(match.matchDate).toLocaleString("ko-KR")}
-        </div>
+        <div className="text-center text-sm mt-2" style={{ color: "var(--text-sub)" }}>
+  {new Date(match.matchDate).toLocaleString("ko-KR")}
+</div>
       </div>
 
       <LossDiagnosis my={leftTeam} enemy={rightTeam} />

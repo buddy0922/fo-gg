@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import SearchBox from "@/app/components/SearchBox";
 import { useLoading } from "@/app/providers/LoadingProvider";
+import RecentRingSummary from "@/app/components/RecentRingSummary";
 
 type ApiResult =
   | {
@@ -150,7 +151,6 @@ useEffect(() => {
     return (
       <div className="max-w-3xl mx-auto p-6 space-y-6">
         <SearchBox initialValue={nickname} />
-
         <div
   className="border rounded-xl p-4"
   style={{ background: "var(--surface)", borderColor: "var(--border)" }}
@@ -190,8 +190,7 @@ useEffect(() => {
   return (
     <div className="max-w-3xl mx-auto p-6 space-y-6">
       <SearchBox initialValue={nickname} />
-
-      <div
+<div
   className="border rounded-xl p-6 space-y-4"
   style={{ background: "var(--surface)", borderColor: "var(--border)" }}
 >
@@ -230,6 +229,14 @@ useEffect(() => {
 </div>
         
       </div>
+      <RecentRingSummary
+  key={`ring:${nickname}`}   // ✅ 이게 핵심
+  title="최근 경기"
+  matches={matches}
+  take={20}
+/>
+
+
 
       <div className="space-y-6">
         {matches

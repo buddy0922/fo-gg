@@ -212,8 +212,11 @@ export default function LossDiagnosis({ my, enemy }: { my: Team; enemy: Team }) 
 
   if (reasons.length === 0) {
     return (
-      <div className="bg-[#1B2230] border border-[#1C2230] rounded-xl p-4">
-        <div className="text-sm text-gray-300">
+      <div
+  className="border rounded-xl p-4"
+  style={{ background: "var(--surface)", borderColor: "var(--border)" }}
+>
+  <div className="text-sm" style={{ color: "var(--text-sub)" }}>
           코치 리포트를 만들기엔 데이터가 조금 부족했어요. (슈팅/패스 이벤트가 적음)
         </div>
       </div>
@@ -221,42 +224,62 @@ export default function LossDiagnosis({ my, enemy }: { my: Team; enemy: Team }) 
   }
 
   return (
-    <div className="bg-[#1B2230] border border-[#1C2230] rounded-xl p-5 space-y-4">
+    <div
+  className="border rounded-xl p-5 space-y-4"
+  style={{ background: "var(--surface)", borderColor: "var(--border)" }}
+>
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-extrabold">코치 리포트 · 개선 포인트 TOP 3</h2>
-        <span className="text-xs text-gray-400">경기 결과: {myResult || "-"}</span>
+        <h2
+  className="text-lg font-extrabold"
+  style={{ color: "var(--text-main)" }}
+>
+  코치 리포트 · 개선 포인트 TOP 3
+</h2>
+        <span className="text-xs" style={{ color: "var(--text-sub)" }}>
+  경기 결과: {myResult || "-"}
+</span>
       </div>
 
-      <div className="text-sm text-gray-300">
-        이번 경기 데이터를 바탕으로, 다음 경기에서 바로 적용 가능한 체크리스트를 정리했어요.
-      </div>
-
+      <div className="text-sm" style={{ color: "var(--text-sub)" }}>
+  이번 경기 데이터를 바탕으로, 다음 경기에서 바로 적용 가능한 체크리스트를 정리했어요.
+</div>
       <div className="space-y-3">
         {reasons.map((r, idx) => (
-          <div key={r.key} className="rounded-xl bg-black/20 p-4 border border-white/5">
+          <div
+  key={r.key}
+  className="rounded-xl p-4 border"
+  style={{ background: "var(--surface)", borderColor: "var(--border)" }}
+>
             <div className="flex items-start gap-3">
-              <div className="mt-0.5 h-6 w-6 rounded-full bg-white/10 flex items-center justify-center text-sm font-bold">
+              <div
+  className="mt-0.5 h-6 w-6 rounded-full flex items-center justify-center text-sm font-bold"
+  style={{ background: "var(--border)", color: "var(--text-main)" }}
+>
                 {idx + 1}
               </div>
 
               <div className="flex-1">
-                <div className="font-semibold">{r.title}</div>
-                <div className="text-sm text-gray-300 mt-1">{r.desc}</div>
+                <div className="font-semibold" style={{ color: "var(--text-main)" }}>
+  {r.title}
+</div>
+                <div className="text-sm mt-1" style={{ color: "var(--text-sub)" }}>
+  {r.desc}
+</div>
 
                 <div className="mt-3">
-                  <div className="text-xs font-semibold text-gray-200 mb-1">
-                    ▶ 다음 경기 체크리스트
-                  </div>
-                  <ul className="list-disc pl-5 text-sm text-gray-300 space-y-1">
+                  <div className="text-xs font-semibold mb-1" style={{ color: "var(--text-main)" }}>
+  ▶ 다음 경기 체크리스트
+</div>
+                  <ul className="list-disc pl-5 text-sm space-y-1" style={{ color: "var(--text-sub)" }}>
                     {r.rec.map((t, i) => (
                       <li key={i}>{t}</li>
                     ))}
                   </ul>
                 </div>
 
-                <div className="mt-3 text-xs text-gray-400">
-                  * 이 리포트는 경기 기록(슈팅/점유/패스 등) 기반의 자동 요약입니다.
-                </div>
+                <div className="mt-3 text-xs" style={{ color: "var(--text-sub)" }}>
+  * 이 리포트는 경기 기록(슈팅/점유/패스 등) 기반의 자동 요약입니다.
+</div>
               </div>
             </div>
           </div>
