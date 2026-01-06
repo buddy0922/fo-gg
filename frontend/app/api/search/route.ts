@@ -4,11 +4,15 @@ import { getCache, setCache } from "@/app/lib/serverCache";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-async function nxFetch(path: string) {
+const API_BASE = "https://open.api.nexon.com/fconline/v1";
+
+async function nxFetch(pathWithQuery: string) {
   const apiKey = process.env.NEXON_API_KEY;
   if (!apiKey) throw new Error("missing_api_key");
 
-  const res = await fetch(`https://open.api.nexon.com/fconline/v1.0${path}`, {
+  const url = `${API_BASE}${pathWithQuery}`;
+
+  const res = await fetch(url, {
     headers: { "x-nxopen-api-key": apiKey },
     cache: "no-store",
   });
@@ -29,11 +33,7 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const rawNickname = searchParams.get("nickname");
 
-  if (!rawNickname) {
-    return NextResponse.json({ error: "nickname_required" }, { status: 400 });
-  }
-
-  const nickname = rawNickname.trim();
+  const nickname = (rawNickname ?? "").trim();
   if (!nickname) {
     return NextResponse.json({ error: "nickname_required" }, { status: 400 });
   }
@@ -43,34 +43,38 @@ export async function GET(req: Request) {
   if (cached) return NextResponse.json(cached);
 
   try {
-    // 1) 닉네임 -> ouid
-    const userRes = await nxFetch(`/users?nickname=${encodeURIComponent(nickname)}`);
+    /* 1) nickname -> ouid  (✅ v1/id) */
+    const idRes = await nxFetch(
+      `/id?nickname=${encodeURIComponent(nickname)}`
+    );
 
-    if (userRes.status === 503) {
-      return NextResponse.json({ error: "temporary_unavailable" }, { status: 503 });
-    }
-    if (userRes.status === 404) {
-      return NextResponse.json({ error: "user_not_found" }, { status: 404 });
-    }
-    if (!userRes.ok) {
-      const text = await userRes.text().catch(() => "");
+    if (idRes.status === 503) {
       return NextResponse.json(
-        { error: "upstream_error", status: userRes.status, body: text.slice(0, 500) },
+        { error: "temporary_unavailable" },
+        { status: 503 }
+      );
+    }
+
+    if (!idRes.ok) {
+      const text = await idRes.text().catch(() => "");
+      // 여기에서 OPENAPI00004 같은 게 그대로 보이게
+      return NextResponse.json(
+        { error: "upstream_error", status: idRes.status, body: text.slice(0, 500) },
         { status: 500 }
       );
     }
 
-    const user = await userRes.json();
-    const ouid: string | undefined = user?.ouid;
+    const idJson = await idRes.json();
+    const ouid: string | undefined = idJson?.ouid;
 
     if (!ouid) {
       return NextResponse.json({ error: "user_not_found" }, { status: 404 });
     }
 
-    // 2) 최고 티어
-    const maxDivRes = await nxFetch(`/users/${encodeURIComponent(ouid)}/maxdivision`);
-    const maxDiv = maxDivRes.ok ? await maxDivRes.json() : [];
-    const list = Array.isArray(maxDiv) ? maxDiv : [];
+    /* 2) maxdivision (✅ v1/user/maxdivision) */
+    const maxDivRes = await nxFetch(`/user/maxdivision?ouid=${encodeURIComponent(ouid)}`);
+    const maxDivJson = maxDivRes.ok ? await maxDivRes.json() : [];
+    const list = Array.isArray(maxDivJson) ? maxDivJson : [];
 
     const official = list.filter((d: any) => d.matchType === 50);
     const highestDivision =
@@ -82,30 +86,36 @@ export async function GET(req: Request) {
         ? meta.find((d: any) => d.divisionId === highestDivision)?.divisionName
         : undefined;
 
-    // 3) 최근 경기 matchId들
-    const matchesRes = await nxFetch(
-      `/users/${encodeURIComponent(ouid)}/matches?matchtype=50&offset=0&limit=10`
+    /* 3) recent matches (✅ v1/user/match) */
+    const matchRes = await nxFetch(
+      `/user/match?ouid=${encodeURIComponent(ouid)}&matchtype=50&offset=0&limit=10`
     );
 
-    if (matchesRes.status === 503) {
-      return NextResponse.json({ error: "temporary_unavailable" }, { status: 503 });
-    }
-    if (!matchesRes.ok) {
-      const text = await matchesRes.text().catch(() => "");
+    if (matchRes.status === 503) {
       return NextResponse.json(
-        { error: "upstream_error", status: matchesRes.status, body: text.slice(0, 500) },
+        { error: "temporary_unavailable" },
+        { status: 503 }
+      );
+    }
+
+    if (!matchRes.ok) {
+      const text = await matchRes.text().catch(() => "");
+      return NextResponse.json(
+        { error: "upstream_error", status: matchRes.status, body: text.slice(0, 500) },
         { status: 500 }
       );
     }
 
-    const matchIds: string[] = (await matchesRes.json()) ?? [];
+    const matchIds: string[] = (await matchRes.json()) ?? [];
 
-    // 4) match detail (너 UI가 쓰는 형태로 가공)
+    /* 4) match-detail (✅ v1/match-detail?matchid=...) */
     const results: any[] = [];
 
     for (const matchId of matchIds) {
       try {
-        const detailRes = await nxFetch(`/matches/${encodeURIComponent(matchId)}`);
+        const detailRes = await nxFetch(
+          `/match-detail?matchid=${encodeURIComponent(matchId)}`
+        );
         if (!detailRes.ok) continue;
 
         const match = await detailRes.json();

@@ -45,9 +45,9 @@ async function getMatchDetail(matchId: string) {
 export default async function MatchDetailPage({
   params,
 }: {
-  params: { matchId: string; nickname: string };
+  params: Promise<{ matchId: string; nickname: string }>;
 }) {
-  const { matchId, nickname } = params;
+  const { matchId, nickname } = await params;
 
   const match = await getMatchDetail(matchId);
 
