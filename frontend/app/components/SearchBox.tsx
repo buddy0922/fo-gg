@@ -29,8 +29,13 @@ export default function SearchBox({ initialValue = "" }: { initialValue?: string
         onKeyDown={(e) => {
           if (e.key === "Enter") onSearch();
         }}
-        placeholder="닉네임 입력"
-        className="flex-1 px-4 py-2 rounded bg-[#1B2230] border border-gray-700 text-white text-sm"
+        className="flex-1 px-4 py-2 rounded text-sm disabled:opacity-50"
+  style={{
+    background: "var(--input-bg)",
+    border: `1px solid var(--input-border)`,
+    color: "var(--input-text)",
+  }}
+  placeholder="닉네임 입력"
       />
 
       <button

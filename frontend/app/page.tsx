@@ -8,14 +8,14 @@ export default function Home() {
 
         {/* 🔥 FO.GG 로고 */}
         <div>
-          <h1 className="text-5xl md:text-6xl font-extrabold text-white tracking-tight">
-            FO.GG
-          </h1>
+          <h1 className="text-5xl md:text-6xl font-extrabold tracking-tight logo-font">
+  FO.GG
+</h1>
         </div>
 
         {/* 메인 문구 */}
         <div className="space-y-3">
-          <h2 className="text-3xl md:text-4xl font-extrabold text-white">
+          <h2 className="text-3xl md:text-4xl font-extrabold logo-font">
             FC ONLINE 전적을{" "}
             <span className="text-[#34E27A]">한눈에</span>
           </h2>
@@ -26,9 +26,9 @@ export default function Home() {
 
         {/* 검색 박스 */}
         <Suspense fallback={null}>
-          <div className="bg-[#0F1218] border border-[#1C2230] rounded-2xl p-4">
+          
             <SearchBox />
-          </div>
+          
         </Suspense>
 
         {/* 하단 힌트 */}

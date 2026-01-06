@@ -8,6 +8,7 @@ import ClientLoading from "@/app/ClientLoading";
 import  LoadingProvider  from "@/app/providers/LoadingProvider";
 import ThemeProvider from "./providers/ThemeProvider";
 
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],

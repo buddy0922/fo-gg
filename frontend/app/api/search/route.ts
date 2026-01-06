@@ -6,6 +6,8 @@ export const revalidate = 0;
 
 const API_BASE = "https://open.api.nexon.com/fconline/v1";
 
+const MATCH_LIMIT = 100
+;
 async function nxFetch(pathWithQuery: string) {
   const apiKey = process.env.NEXON_API_KEY;
   if (!apiKey) throw new Error("missing_api_key");
@@ -88,8 +90,8 @@ export async function GET(req: Request) {
 
     /* 3) recent matches (✅ v1/user/match) */
     const matchRes = await nxFetch(
-      `/user/match?ouid=${encodeURIComponent(ouid)}&matchtype=50&offset=0&limit=10`
-    );
+  `/user/match?ouid=${encodeURIComponent(ouid)}&matchtype=50&offset=0&limit=${MATCH_LIMIT}`
+);
 
     if (matchRes.status === 503) {
       return NextResponse.json(

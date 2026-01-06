@@ -32,7 +32,7 @@ type ApiResult =
 function resultBarColor(result: "승" | "패" | "무") {
   switch (result) {
     case "승":
-      return "bg-[#34E27A]";
+      return "bg-[#4A6CFF]"; // 🔵 승 → 파랑
     case "패":
       return "bg-red-400";
     case "무":
@@ -41,7 +41,7 @@ function resultBarColor(result: "승" | "패" | "무") {
 }
 
 function getSummary(matches: any[]) {
-  const recent = matches.slice(0, 10);
+  const recent = matches.slice(0, 20);
   let win = 0;
   recent.forEach((m) => {
     if (m.result === "승") win += 1;
@@ -83,6 +83,14 @@ export default function SearchPageClient() {
   }, [sp]);
 
   const [data, setData] = useState<ApiResult | null>(null);
+  const PAGE_SIZE = 20;
+const MAX_SHOW = 100;
+const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+
+useEffect(() => {
+  setVisibleCount(PAGE_SIZE);
+}, [nickname]);
+
   const { setLoading } = useLoading();
 
   useEffect(() => {
@@ -129,7 +137,7 @@ export default function SearchPageClient() {
   // ✅ 닉네임이 없을 때
   if (!nickname) {
     return (
-      <div className="max-w-3xl mx-auto p-6 text-white space-y-6">
+      <div className="max-w-3xl mx-auto p-6 space-y-6">
         <SearchBox />
         <p className="text-gray-400">닉네임을 입력해 주세요.</p>
       </div>
@@ -140,10 +148,13 @@ export default function SearchPageClient() {
   // ✅ 에러 처리
   if (!data || "error" in data) {
     return (
-      <div className="max-w-3xl mx-auto p-6 text-white space-y-6">
+      <div className="max-w-3xl mx-auto p-6 space-y-6">
         <SearchBox initialValue={nickname} />
 
-        <div className="bg-[#1B2230] border border-[#1C2230] rounded-xl p-4">
+        <div
+  className="border rounded-xl p-4"
+  style={{ background: "var(--surface)", borderColor: "var(--border)" }}
+>
           <h1 className="font-bold text-lg">오류가 발생했습니다</h1>
 
           <p className="text-gray-400 mt-1">
@@ -173,13 +184,17 @@ export default function SearchPageClient() {
 
   // ✅ 정상 렌더
   const matches = data.matches ?? [];
+  
   const { winRate, streak, streakType } = getSummary(matches);
 
   return (
-    <div className="max-w-3xl mx-auto p-6 space-y-6 text-white">
+    <div className="max-w-3xl mx-auto p-6 space-y-6">
       <SearchBox initialValue={nickname} />
 
-      <div className="bg-[#1B2230] rounded-xl p-6 space-y-4 border border-[#1C2230]">
+      <div
+  className="border rounded-xl p-6 space-y-4"
+  style={{ background: "var(--surface)", borderColor: "var(--border)" }}
+>
         <h1 className="text-2xl font-extrabold">{nickname}</h1>
 
         <div className="text-sm text-gray-300">
@@ -201,20 +216,30 @@ export default function SearchPageClient() {
           )}
         </div>
 
-        <div className="flex gap-1">
-          {matches.slice(0, 10).map((m, idx) => (
-            <div key={idx} className={`h-2 flex-1 rounded ${resultBarColor(m.result)}`} />
-          ))}
+        <div className="flex gap-1 relative">
+  {matches.slice(0, 20).map((m, idx) => (
+    <div key={idx} className="relative flex-1">
+      {idx === 0 && (
+        <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 text-xs text-white">
+          ▲
         </div>
+      )}
+      <div className={`h-2 rounded ${resultBarColor(m.result)}`} />
+    </div>
+  ))}
+</div>
+        
       </div>
 
       <div className="space-y-6">
-        {matches.map((m) => (
-          <Link
-            key={m.matchId}
-            href={`/match/${m.matchId}/${encodeURIComponent(nickname)}`}
-            className="block"
-          >
+        {matches
+  .slice(0, Math.min(visibleCount, MAX_SHOW))
+  .map((m) => (
+  <Link
+    key={m.matchId}
+    href={`/match/${m.matchId}/${encodeURIComponent(nickname)}`}
+    className="block"
+  >
             <div
               className={`
                 relative
@@ -228,10 +253,10 @@ export default function SearchPageClient() {
                 hover:shadow-lg
                 ${
                   m.result === "승"
-                    ? "bg-gradient-to-r from-[#0f2f1f] to-[#134a31]"
-                    : m.result === "패"
-                    ? "bg-gradient-to-r from-[#2b0f12] to-[#45161a]"
-                    : "bg-gradient-to-r from-[#2e2a12] to-[#4a4318]"
+  ? "bg-gradient-to-r from-[#2C7BC4] to-[#1B2F6A]"
+  : m.result === "패"
+  ? "bg-gradient-to-r from-[#7A1F2B] to-[#3A0F16]"
+  : "bg-gradient-to-r from-[#8A7A2A] to-[#4A4318]"
                 }
               `}
             >
@@ -240,10 +265,10 @@ export default function SearchPageClient() {
                   absolute left-0 top-0 h-full w-1.5 rounded-l-2xl
                   ${
                     m.result === "승"
-                      ? "bg-[#34E27A]"
-                      : m.result === "패"
-                      ? "bg-red-400"
-                      : "bg-yellow-300"
+                     ? "bg-[#4A6CFF]" // 🔵
+                     : m.result === "패"
+                     ? "bg-red-400"
+                     : "bg-yellow-300"
                   }
                 `}
               />
@@ -269,6 +294,21 @@ export default function SearchPageClient() {
           </Link>
         ))}
       </div>
+      {Math.min(visibleCount, MAX_SHOW) < Math.min(matches.length, MAX_SHOW) && (
+  <div className="flex justify-center pt-2">
+    <button
+      type="button"
+      onClick={() =>
+        setVisibleCount((v) => Math.min(v + PAGE_SIZE, MAX_SHOW))
+      }
+      className="px-4 py-2 rounded-xl text-sm font-semibold
+                 border transition hover:opacity-90"
+      style={{ background: "var(--surface)", borderColor: "var(--border)" }}
+    >
+      더보기 ({Math.min(visibleCount, MAX_SHOW)}/{Math.min(matches.length, MAX_SHOW)})
+    </button>
+  </div>
+)}
     </div>
   );
 }
