@@ -183,16 +183,6 @@ export default function ShotHeatmap({
 
   const normalGroups = ["1~15", "16~30", "31~45", "46~60", "61~75", "76~90"];
 
-  const [isMobile, setIsMobile] = useState(false);
-
-useEffect(() => {
-  const mq = window.matchMedia("(max-width: 639px)"); // sm 미만
-  const onChange = () => setIsMobile(mq.matches);
-  onChange();
-  mq.addEventListener?.("change", onChange);
-  return () => mq.removeEventListener?.("change", onChange);
-}, []);
-
   const allShots = useMemo(
     () => [...(home?.shootDetail ?? []), ...(away?.shootDetail ?? [])],
     [home, away]
@@ -338,120 +328,136 @@ useEffect(() => {
       </div>
 
       {/* 히트맵 */}
-      <div
-  className="relative w-full aspect-[68/105] sm:aspect-[105/68] rounded-xl overflow-hidden border"
-  style={{ background: "var(--surface-2, var(--surface))", borderColor: "var(--border)" }}
+<div
+  className="
+    relative w-full
+    aspect-[68/105] sm:aspect-[105/68]
+    rounded-xl overflow-hidden border
+  "
+  style={{
+    background: "var(--surface-2, var(--surface))",
+    borderColor: "var(--border)",
+  }}
   onClick={() => setSelectedKey(null)}
 >
-        {/* 센터라인 */}
-        <div className="absolute inset-y-0 left-1/2 w-px bg-white/20" />
+  {/* ✅ 모바일: 세로 경기장 (rotate) / 데스크탑: 가로 경기장 */}
+  <div
+    className="
+      absolute left-1/2 top-1/2
+      -translate-x-1/2 -translate-y-1/2
+      rotate-90 sm:rotate-0
+      origin-center
+    "
+    style={{
+      // ✅ 모바일(rotate-90)일 때 잘림 방지: 가로/세로를 뒤집어서 채움
+      width: "100%",
+      height: "100%",
+    }}
+  >
+    <div className="absolute inset-0 sm:inset-0" />
 
-        {/* 센터서클 */}
-        <div
-          className="absolute rounded-full border border-white/20"
+    {/* 센터라인 */}
+    <div className="absolute inset-y-0 left-1/2 w-px bg-white/20" />
+
+    {/* 센터서클 */}
+    <div
+      className="absolute rounded-full border border-white/20"
+      style={{
+        width: `${((9.15 * 2) / 105) * 100}%`,
+        height: `${((9.15 * 2) / 68) * 100}%`,
+        left: "50%",
+        top: "50%",
+        transform: "translate(-50%, -50%)",
+      }}
+    />
+
+    {/* 페널티박스 */}
+    {[
+      { side: "left", x: 0 },
+      { side: "right", x: 105 - 16.5 },
+    ].map((b) => (
+      <div
+        key={b.side}
+        className="absolute border border-white/20"
+        style={{
+          left: `${(b.x / 105) * 100}%`,
+          top: `${((68 / 2 - 40.32 / 2) / 68) * 100}%`,
+          width: `${(16.5 / 105) * 100}%`,
+          height: `${(40.32 / 68) * 100}%`,
+        }}
+      />
+    ))}
+
+    {/* 골에어리어 */}
+    {[
+      { side: "left", x: 0 },
+      { side: "right", x: 105 - 5.5 },
+    ].map((b) => (
+      <div
+        key={b.side}
+        className="absolute border border-white/20"
+        style={{
+          left: `${(b.x / 105) * 100}%`,
+          top: `${((68 / 2 - 18.32 / 2) / 68) * 100}%`,
+          width: `${(5.5 / 105) * 100}%`,
+          height: `${(18.32 / 68) * 100}%`,
+        }}
+      />
+    ))}
+
+    {/* 페널티 스폿 */}
+    {[11, 105 - 11].map((x, i) => (
+      <div
+        key={i}
+        className="absolute w-1.5 h-1.5 bg-white rounded-full"
+        style={{
+          left: `${(x / 105) * 100}%`,
+          top: "50%",
+          transform: "translate(-50%, -50%)",
+        }}
+      />
+    ))}
+
+    {/* 슈팅 포인트 */}
+    {filteredEvents.map((e) => {
+      const posM = shotToMeter(e.shot, e.team, searchSide);
+      const { leftPct, topPct } = meterToPct(posM);
+
+      const isSearchUserShot = e.team === searchSide;
+      const isActive = selectedKey === e.key;
+
+      return (
+        <button
+          key={e.key}
+          onClick={(ev) => {
+            ev.stopPropagation();
+            setSelectedKey(e.key);
+          }}
+          className={`
+            absolute rounded-full transition-all duration-200
+            ${e.isGoal ? "w-4 h-4" : "w-2.5 h-2.5"}
+            ${isSearchUserShot ? "bg-[#34E27A]" : "bg-red-400"}
+            ${
+              selectedKey
+                ? isActive
+                  ? "opacity-100 scale-110 ring-2 ring-blue-400 ring-offset-2 z-20"
+                  : "opacity-30"
+                : "opacity-100"
+            }
+          `}
           style={{
-            width: `${((9.15 * 2) / 105) * 100}%`,
-            height: `${((9.15 * 2) / 68) * 100}%`,
-            left: "50%",
-            top: "50%",
+            left: `${leftPct}%`,
+            top: `${topPct}%`,
             transform: "translate(-50%, -50%)",
+            ...(selectedKey && isActive
+              ? ({ ringOffsetColor: "var(--surface-2, var(--surface))" } as any)
+              : {}),
           }}
         />
-
-        {/* 페널티박스 (16.5 깊이 x 40.32 폭) */}
-        {[
-          { side: "left", x: 0 },
-          { side: "right", x: 105 - 16.5 },
-        ].map((b) => (
-          <div
-            key={b.side}
-            className="absolute border border-white/20"
-            style={{
-              left: `${(b.x / 105) * 100}%`,
-              top: `${((68 / 2 - 40.32 / 2) / 68) * 100}%`,
-              width: `${(16.5 / 105) * 100}%`,
-              height: `${(40.32 / 68) * 100}%`,
-            }}
-          />
-        ))}
-
-        {/* 골에어리어 (5.5 깊이 x 18.32 폭) */}
-        {[
-          { side: "left", x: 0 },
-          { side: "right", x: 105 - 5.5 },
-        ].map((b) => (
-          <div
-            key={b.side}
-            className="absolute border border-white/20"
-            style={{
-              left: `${(b.x / 105) * 100}%`,
-              top: `${((68 / 2 - 18.32 / 2) / 68) * 100}%`,
-              width: `${(5.5 / 105) * 100}%`,
-              height: `${(18.32 / 68) * 100}%`,
-            }}
-          />
-        ))}
-
-        {/* 페널티 스폿 */}
-        {[11, 105 - 11].map((x, i) => (
-          <div
-            key={i}
-            className="absolute w-1.5 h-1.5 bg-white rounded-full"
-            style={{
-              left: `${(x / 105) * 100}%`,
-              top: "50%",
-              transform: "translate(-50%, -50%)",
-            }}
-          />
-        ))}
-
-        {/* 슈팅 포인트 */}
-        {filteredEvents.map((e) => {
-          const posM = shotToMeter(e.shot, e.team, searchSide);
-          let { leftPct, topPct } = meterToPct(posM);
-
-// ✅ 모바일(세로 경기장)일 때 90도 회전 보정
-if (isMobile) {
-  const newLeft = topPct;           // y -> x
-  const newTop = 100 - leftPct;     // x -> 반전된 y
-  leftPct = newLeft;
-  topPct = newTop;
-}
-
-          const isSearchUserShot = e.team === searchSide; // ✅ 색도 전적검색 유저 기준
-          const isActive = selectedKey === e.key;
-
-          return (
-            <button
-              key={e.key}
-              onClick={(ev) => {
-                ev.stopPropagation();
-                setSelectedKey(e.key);
-              }}
-              className={`
-                absolute rounded-full transition-all duration-200
-                ${e.isGoal ? "w-4 h-4" : "w-2.5 h-2.5"}
-                ${isSearchUserShot ? "bg-[#34E27A]" : "bg-red-400"}
-                ${
-                  selectedKey
-                    ? isActive
-                      ? "opacity-100 scale-110 ring-2 ring-blue-400 ring-offset-2 z-20"
-                      : "opacity-30"
-                    : "opacity-100"
-                }
-              `}
-              style={{
-                left: `${leftPct}%`,
-                top: `${topPct}%`,
-                transform: "translate(-50%, -50%)",
-                ...(selectedKey && isActive
-    ? ({ ringOffsetColor: "var(--surface-2, var(--surface))" } as any)
-    : {}),
-              }}
-            />
-          );
-        })}
-      </div>
+      );
+    })}
+  </div>
+</div>
 
       {/* 선택 정보 */}
       {selected && (
