@@ -360,19 +360,15 @@ export default function ShotHeatmap({
 >
   {/* ✅ 모바일: 세로 경기장 (rotate) / 데스크탑: 가로 경기장 */}
     <div
-    className="
-      absolute left-1/2 top-1/2
-      -translate-x-1/2 -translate-y-1/2
-      origin-center
-      rotate-90 sm:rotate-0
-    "
-    style={{
-  width: isMobile ? "100%" : "100%",
-  height: isMobile
-    ? `${(FIELD_LENGTH / FIELD_WIDTH) * 100}%` // 🔥 154.41%
-    : "100%",
-}}
-  >
+  className="
+    absolute left-1/2 top-1/2
+    -translate-x-1/2 -translate-y-1/2
+    origin-center
+    rotate-90 sm:rotate-0
+    scale-[1.55] sm:scale-100
+  "
+  style={{ width: "100%", height: "100%" }}
+>
     {/* 여기 안쪽에 경기장 선 + 슈팅 포인트 전부 넣기 */}
     <div className="absolute inset-0 sm:inset-0" />
 
