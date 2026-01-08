@@ -6,8 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import SearchBox from "@/app/components/SearchBox";
 import { useLoading } from "@/app/providers/LoadingProvider";
 import RecentRingSummary from "@/app/components/RecentRingSummary";
-import { addRecentNickname } from "@/app/lib/recentSearch";
-import RecentSearches from "@/app/components/RecentSearches";
+
 
 type ApiResult =
   | {
@@ -120,10 +119,7 @@ useEffect(() => {
             json ?? { error: "upstream_error", status: res.status, body: "no body" }
           );
         } else {
-          if (res.ok && json && "matches" in json) {
-  addRecentNickname(nickname);
-          }
-          setData(json);
+          setData(json as ApiResult);
         }
       } catch (e: any) {
         if (!ignore) {
@@ -156,7 +152,6 @@ useEffect(() => {
     return (
       <div className="max-w-3xl mx-auto p-6 space-y-6">
         <SearchBox initialValue={nickname} />
-        <RecentSearches limit={3} />
         <div
   className="border rounded-xl p-4"
   style={{ background: "var(--surface)", borderColor: "var(--border)" }}

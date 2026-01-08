@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { getPlayerDisplay } from "@/app/lib/players";
+import { explainShotLine } from "@/app/lib/shotExplain";
 
 /* ===============================
    좌표 정규화
@@ -18,6 +19,7 @@ function norm01(v: any) {
 ================================ */
 const FIELD_LENGTH = 105;
 const FIELD_WIDTH = 68;
+
 
 /* ===============================
    (핵심) 전적검색 유저를 항상 "오른쪽 공격"으로 보이게 하는 변환
@@ -181,6 +183,16 @@ export default function ShotHeatmap({
 
   const normalGroups = ["1~15", "16~30", "31~45", "46~60", "61~75", "76~90"];
 
+  const [isMobile, setIsMobile] = useState(false);
+
+useEffect(() => {
+  const mq = window.matchMedia("(max-width: 639px)"); // sm 미만
+  const onChange = () => setIsMobile(mq.matches);
+  onChange();
+  mq.addEventListener?.("change", onChange);
+  return () => mq.removeEventListener?.("change", onChange);
+}, []);
+
   const allShots = useMemo(
     () => [...(home?.shootDetail ?? []), ...(away?.shootDetail ?? [])],
     [home, away]
@@ -233,7 +245,21 @@ export default function ShotHeatmap({
     if (!selected) return null;
     const posM = shotToMeter(selected.shot, selected.team, searchSide);
     return distanceToAttackingGoalM(posM, selected.team, searchSide);
-  }, [selected, searchSide]);
+  }, [selected, searchSide]); 
+
+  const explainLine = useMemo(() => {
+  if (!selected) return "";
+  const isForMe = selected.team === searchSide;
+
+  return explainShotLine({
+    isGoal: selected.isGoal,
+    isForMe,
+    inPenalty: selected.shot?.inPenalty,
+    distM: selectedDistM,
+    minute: selected.minute,
+    shotType: selected.shot?.type ?? null,
+  });
+}, [selected, searchSide, selectedDistM]);
 
   const momentumBins = useMemo(() => {
     return normalGroups.map((g) => {
@@ -313,7 +339,7 @@ export default function ShotHeatmap({
 
       {/* 히트맵 */}
       <div
-  className="relative w-full aspect-[105/68] rounded-xl overflow-hidden border"
+  className="relative w-full aspect-[68/105] sm:aspect-[105/68] rounded-xl overflow-hidden border"
   style={{ background: "var(--surface-2, var(--surface))", borderColor: "var(--border)" }}
   onClick={() => setSelectedKey(null)}
 >
@@ -382,7 +408,15 @@ export default function ShotHeatmap({
         {/* 슈팅 포인트 */}
         {filteredEvents.map((e) => {
           const posM = shotToMeter(e.shot, e.team, searchSide);
-          const { leftPct, topPct } = meterToPct(posM);
+          let { leftPct, topPct } = meterToPct(posM);
+
+// ✅ 모바일(세로 경기장)일 때 90도 회전 보정
+if (isMobile) {
+  const newLeft = topPct;           // y -> x
+  const newTop = 100 - leftPct;     // x -> 반전된 y
+  leftPct = newLeft;
+  topPct = newTop;
+}
 
           const isSearchUserShot = e.team === searchSide; // ✅ 색도 전적검색 유저 기준
           const isActive = selectedKey === e.key;
@@ -436,6 +470,13 @@ export default function ShotHeatmap({
   <div style={{ color: "var(--text-sub)" }}>
     골대까지 거리: {selectedDistM?.toFixed(1)}m
   </div>
+  {/* 🧠 한 줄 해석 (여기!) */}
+    <div
+      className="mt-2 text-sm"
+      style={{ color: "var(--text-sub)" }}
+    >
+      {explainLine}
+    </div>
 </div>
       )}
     </div>
