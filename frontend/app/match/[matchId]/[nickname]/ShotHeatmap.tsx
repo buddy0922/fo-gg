@@ -355,26 +355,25 @@ export default function ShotHeatmap({
     aspect-[68/105] sm:aspect-[105/68]
     rounded-xl overflow-hidden border
   "
-  style={{
-    background: "var(--surface-2, var(--surface))",
-    borderColor: "var(--border)",
-  }}
+  style={{ background: "var(--surface-2, var(--surface))", borderColor: "var(--border)" }}
   onClick={() => setSelectedKey(null)}
 >
   {/* ✅ 모바일: 세로 경기장 (rotate) / 데스크탑: 가로 경기장 */}
-  <div
+    <div
     className="
       absolute left-1/2 top-1/2
       -translate-x-1/2 -translate-y-1/2
-      rotate-90 sm:rotate-0
       origin-center
+      rotate-90 sm:rotate-0
     "
     style={{
-      // ✅ 모바일(rotate-90)일 때 잘림 방지: 가로/세로를 뒤집어서 채움
-      width: "100%",
-      height: "100%",
-    }}
+  width: isMobile ? "100%" : "100%",
+  height: isMobile
+    ? `${(FIELD_LENGTH / FIELD_WIDTH) * 100}%` // 🔥 154.41%
+    : "100%",
+}}
   >
+    {/* 여기 안쪽에 경기장 선 + 슈팅 포인트 전부 넣기 */}
     <div className="absolute inset-0 sm:inset-0" />
 
     {/* 센터라인 */}
