@@ -62,10 +62,20 @@ function meterToPct(pos: { x: number; y: number }) {
 function distanceToAttackingGoalM(
   pos: { x: number; y: number },
   team: "home" | "away",
-  searchSide: "home" | "away"
+  searchSide: "home" | "away",
+  isMobile: boolean
 ) {
-  const goalX = team === searchSide ? FIELD_LENGTH : 0;
-  const goalY = FIELD_WIDTH / 2;
+  if (!isMobile) {
+    const goalX = team === searchSide ? FIELD_LENGTH : 0;
+    const goalY = FIELD_WIDTH / 2;
+    const dx = goalX - pos.x;
+    const dy = goalY - pos.y;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+
+  // ✅ 모바일(rotate-90): 전적검색 유저는 아래 골대, 상대는 위 골대
+  const goalX = FIELD_LENGTH / 2;
+  const goalY = team === searchSide ? FIELD_WIDTH : 0;
 
   const dx = goalX - pos.x;
   const dy = goalY - pos.y;
@@ -172,6 +182,17 @@ export default function ShotHeatmap({
 }) {
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [filter, setFilter] = useState<ShotFilter>("all");
+    const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 639px)"); // sm 미만
+    const onChange = () => setIsMobile(mq.matches);
+
+    onChange(); // 초기 1번 세팅
+    mq.addEventListener("change", onChange);
+
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -232,10 +253,10 @@ export default function ShotHeatmap({
   );
 
   const selectedDistM = useMemo(() => {
-    if (!selected) return null;
-    const posM = shotToMeter(selected.shot, selected.team, searchSide);
-    return distanceToAttackingGoalM(posM, selected.team, searchSide);
-  }, [selected, searchSide]); 
+  if (!selected) return null;
+  const posM = shotToMeter(selected.shot, selected.team, searchSide);
+  return distanceToAttackingGoalM(posM, selected.team, searchSide, isMobile);
+}, [selected, searchSide, isMobile]);
 
   const explainLine = useMemo(() => {
   if (!selected) return "";
