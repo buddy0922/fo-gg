@@ -20,11 +20,8 @@ function norm01(v: any) {
 const FIELD_LENGTH = 105;
 const FIELD_WIDTH = 68;
 
-
 /* ===============================
    (핵심) 전적검색 유저를 항상 "오른쪽 공격"으로 보이게 하는 변환
-   - 원본 데이터는: home은 오른쪽 공격, away는 왼쪽 공격 (가정)
-   - 우리는: "전적검색 유저"는 항상 오른쪽 공격으로 보이게 통일
 ================================ */
 function shotToMeter(
   shot: any,
@@ -33,12 +30,8 @@ function shotToMeter(
 ) {
   const rawX = norm01(shot.x);
 
-  // ✅ 전적검색 유저는 항상 오른쪽 공격
-  // ✅ 상대는 항상 왼쪽 공격
-  const xNorm =
-    team === searchSide
-      ? rawX          // 전적검색 유저 → 그대로 (→ 오른쪽 골대)
-      : 1 - rawX;     // 상대 → 좌우 반전 (← 왼쪽 골대)
+  // 전적검색 유저는 오른쪽 공격(그대로), 상대는 좌우 반전
+  const xNorm = team === searchSide ? rawX : 1 - rawX;
 
   return {
     x: xNorm * FIELD_LENGTH,
@@ -47,7 +40,7 @@ function shotToMeter(
 }
 
 /* ===============================
-   미터 좌표 -> % (렌더링용)
+   미터 좌표 -> % (가로 필드 기준)
 ================================ */
 function meterToPct(pos: { x: number; y: number }) {
   return {
@@ -57,29 +50,17 @@ function meterToPct(pos: { x: number; y: number }) {
 }
 
 /* ===============================
-   골대까지 거리 (전적검색 유저: 오른쪽 골대 / 상대: 왼쪽 골대)
+   골대까지 거리 (가로 기준)
 ================================ */
 function distanceToAttackingGoalM(
   pos: { x: number; y: number },
   team: "home" | "away",
-  searchSide: "home" | "away",
-  isMobile: boolean
+  searchSide: "home" | "away"
 ) {
-  if (!isMobile) {
-    const goalX = team === searchSide ? FIELD_LENGTH : 0;
-    const goalY = FIELD_WIDTH / 2;
-    const dx = goalX - pos.x;
-    const dy = goalY - pos.y;
-    return Math.sqrt(dx * dx + dy * dy);
-  }
-
-  // ✅ 모바일(rotate-90): 전적검색 유저는 아래 골대, 상대는 위 골대
-  const goalX = FIELD_LENGTH / 2;
-  const goalY = team === searchSide ? FIELD_WIDTH : 0;
-
+  const goalX = team === searchSide ? FIELD_LENGTH : 0;
+  const goalY = FIELD_WIDTH / 2;
   const dx = goalX - pos.x;
   const dy = goalY - pos.y;
-
   return Math.sqrt(dx * dx + dy * dy);
 }
 
@@ -93,8 +74,8 @@ function minuteGroup(min: number) {
   if (min <= 60) return "46~60";
   if (min <= 75) return "61~75";
   if (min <= 90) return "76~90";
-  if (min <= 105) return "ET 91~105";
-  return "ET 106~120";
+  if (min <= 105) return "연장 전반 91~105";
+  return "연장 후반 106~120";
 }
 
 /* ===============================
@@ -182,17 +163,6 @@ export default function ShotHeatmap({
 }) {
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [filter, setFilter] = useState<ShotFilter>("all");
-    const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    const mq = window.matchMedia("(max-width: 639px)"); // sm 미만
-    const onChange = () => setIsMobile(mq.matches);
-
-    onChange(); // 초기 1번 세팅
-    mq.addEventListener("change", onChange);
-
-    return () => mq.removeEventListener("change", onChange);
-  }, []);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -212,12 +182,20 @@ export default function ShotHeatmap({
   const minuteMap = useMemo(() => buildVirtualMinutes(allShots), [allShots]);
 
   const homeGoalIdx = useMemo(
-    () => pickGoalsByScore(home?.shootDetail ?? [], Number(home?.shoot?.goalTotalDisplay ?? 0)),
+    () =>
+      pickGoalsByScore(
+        home?.shootDetail ?? [],
+        Number(home?.shoot?.goalTotalDisplay ?? 0)
+      ),
     [home]
   );
 
   const awayGoalIdx = useMemo(
-    () => pickGoalsByScore(away?.shootDetail ?? [], Number(away?.shoot?.goalTotalDisplay ?? 0)),
+    () =>
+      pickGoalsByScore(
+        away?.shootDetail ?? [],
+        Number(away?.shoot?.goalTotalDisplay ?? 0)
+      ),
     [away]
   );
 
@@ -253,24 +231,24 @@ export default function ShotHeatmap({
   );
 
   const selectedDistM = useMemo(() => {
-  if (!selected) return null;
-  const posM = shotToMeter(selected.shot, selected.team, searchSide);
-  return distanceToAttackingGoalM(posM, selected.team, searchSide, isMobile);
-}, [selected, searchSide, isMobile]);
+    if (!selected) return null;
+    const posM = shotToMeter(selected.shot, selected.team, searchSide);
+    return distanceToAttackingGoalM(posM, selected.team, searchSide);
+  }, [selected, searchSide]);
 
   const explainLine = useMemo(() => {
-  if (!selected) return "";
-  const isForMe = selected.team === searchSide;
+    if (!selected) return "";
+    const isForMe = selected.team === searchSide;
 
-  return explainShotLine({
-    isGoal: selected.isGoal,
-    isForMe,
-    inPenalty: selected.shot?.inPenalty,
-    distM: selectedDistM,
-    minute: selected.minute,
-    shotType: selected.shot?.type ?? null,
-  });
-}, [selected, searchSide, selectedDistM]);
+    return explainShotLine({
+      isGoal: selected.isGoal,
+      isForMe,
+      inPenalty: selected.shot?.inPenalty,
+      distM: selectedDistM,
+      minute: selected.minute,
+      shotType: selected.shot?.type ?? null,
+    });
+  }, [selected, searchSide, selectedDistM]);
 
   const momentumBins = useMemo(() => {
     return normalGroups.map((g) => {
@@ -299,29 +277,36 @@ export default function ShotHeatmap({
 
   return (
     <div
-  className="rounded-2xl p-6 border space-y-6"
-  style={{ background: "var(--surface)", borderColor: "var(--border)" }}
->
+      className="rounded-2xl p-6 border space-y-6"
+      style={{ background: "var(--surface)", borderColor: "var(--border)" }}
+    >
       <div className="flex items-center justify-between">
         <h3 className="font-bold" style={{ color: "var(--text-main)" }}>
-  📊 경기 흐름 지표
-</h3>
-<span className="text-[11px]" style={{ color: "var(--text-sub)" }}>
-  (슈팅, 골, 위치, 시점 기반)
-</span>
+          📊 경기 흐름 지표
+        </h3>
+        <span className="text-[11px]" style={{ color: "var(--text-sub)" }}>
+          (슈팅, 골, 위치, 시점 기반)
+        </span>
       </div>
 
       {/* 모멘텀 */}
       <div
-  className="relative h-24 rounded-xl border overflow-hidden"
-  style={{ background: "var(--surface-2, var(--surface))", borderColor: "var(--border)" }}
->
+        className="relative h-24 rounded-xl border overflow-hidden"
+        style={{
+          background: "var(--surface-2, var(--surface))",
+          borderColor: "var(--border)",
+        }}
+      >
         <div className="absolute left-0 right-0 top-1/2 h-px bg-white/20" />
         <div className="flex h-full">
           {momentumBins.map((b) => {
             const h = (Math.abs(b.diff) / maxDiff) * 50;
             return (
-              <button key={b.label} onClick={() => b.key && setSelectedKey(b.key)} className="flex-1 relative">
+              <button
+                key={b.label}
+                onClick={() => b.key && setSelectedKey(b.key)}
+                className="flex-1 relative"
+              >
                 {b.diff > 0 && (
                   <div
                     className="absolute bottom-1/2 left-1/2 -translate-x-1/2 w-[70%] rounded-t-md bg-[#34E27A]"
@@ -348,158 +333,138 @@ export default function ShotHeatmap({
         ))}
       </div>
 
-      {/* 히트맵 */}
-<div
-  className="
-    relative w-full
-    aspect-[68/105] sm:aspect-[105/68]
-    rounded-xl overflow-hidden border
-  "
-  style={{ background: "var(--surface-2, var(--surface))", borderColor: "var(--border)" }}
-  onClick={() => setSelectedKey(null)}
->
-  {/* ✅ 모바일: 세로 경기장 (rotate) / 데스크탑: 가로 경기장 */}
-    <div
-  className="
-    absolute left-1/2 top-1/2
-    -translate-x-1/2 -translate-y-1/2
-    origin-center
-    rotate-90 sm:rotate-0
-    scale-[1.55] sm:scale-100
-  "
-  style={{ width: "100%", height: "100%" }}
->
-    {/* 여기 안쪽에 경기장 선 + 슈팅 포인트 전부 넣기 */}
-    <div className="absolute inset-0 sm:inset-0" />
-
-    {/* 센터라인 */}
-    <div className="absolute inset-y-0 left-1/2 w-px bg-white/20" />
-
-    {/* 센터서클 */}
-    <div
-      className="absolute rounded-full border border-white/20"
-      style={{
-        width: `${((9.15 * 2) / 105) * 100}%`,
-        height: `${((9.15 * 2) / 68) * 100}%`,
-        left: "50%",
-        top: "50%",
-        transform: "translate(-50%, -50%)",
-      }}
-    />
-
-    {/* 페널티박스 */}
-    {[
-      { side: "left", x: 0 },
-      { side: "right", x: 105 - 16.5 },
-    ].map((b) => (
+      {/* 히트맵 (가로 필드 기준 그대로) */}
       <div
-        key={b.side}
-        className="absolute border border-white/20"
+        className="relative w-full aspect-[105/68] rounded-xl overflow-hidden border"
         style={{
-          left: `${(b.x / 105) * 100}%`,
-          top: `${((68 / 2 - 40.32 / 2) / 68) * 100}%`,
-          width: `${(16.5 / 105) * 100}%`,
-          height: `${(40.32 / 68) * 100}%`,
+          background: "var(--surface-2, var(--surface))",
+          borderColor: "var(--border)",
         }}
-      />
-    ))}
+        onClick={() => setSelectedKey(null)}
+      >
+        {/* 센터라인 */}
+        <div className="absolute inset-y-0 left-1/2 w-px bg-white/20" />
 
-    {/* 골에어리어 */}
-    {[
-      { side: "left", x: 0 },
-      { side: "right", x: 105 - 5.5 },
-    ].map((b) => (
-      <div
-        key={b.side}
-        className="absolute border border-white/20"
-        style={{
-          left: `${(b.x / 105) * 100}%`,
-          top: `${((68 / 2 - 18.32 / 2) / 68) * 100}%`,
-          width: `${(5.5 / 105) * 100}%`,
-          height: `${(18.32 / 68) * 100}%`,
-        }}
-      />
-    ))}
-
-    {/* 페널티 스폿 */}
-    {[11, 105 - 11].map((x, i) => (
-      <div
-        key={i}
-        className="absolute w-1.5 h-1.5 bg-white rounded-full"
-        style={{
-          left: `${(x / 105) * 100}%`,
-          top: "50%",
-          transform: "translate(-50%, -50%)",
-        }}
-      />
-    ))}
-
-    {/* 슈팅 포인트 */}
-    {filteredEvents.map((e) => {
-      const posM = shotToMeter(e.shot, e.team, searchSide);
-      const { leftPct, topPct } = meterToPct(posM);
-
-      const isSearchUserShot = e.team === searchSide;
-      const isActive = selectedKey === e.key;
-
-      return (
-        <button
-          key={e.key}
-          onClick={(ev) => {
-            ev.stopPropagation();
-            setSelectedKey(e.key);
-          }}
-          className={`
-            absolute rounded-full transition-all duration-200
-            ${e.isGoal ? "w-4 h-4" : "w-2.5 h-2.5"}
-            ${isSearchUserShot ? "bg-[#34E27A]" : "bg-red-400"}
-            ${
-              selectedKey
-                ? isActive
-                  ? "opacity-100 scale-110 ring-2 ring-blue-400 ring-offset-2 z-20"
-                  : "opacity-30"
-                : "opacity-100"
-            }
-          `}
+        {/* 센터서클 */}
+        <div
+          className="absolute rounded-full border border-white/20"
           style={{
-            left: `${leftPct}%`,
-            top: `${topPct}%`,
+            width: `${((9.15 * 2) / 105) * 100}%`,
+            height: `${((9.15 * 2) / 68) * 100}%`,
+            left: "50%",
+            top: "50%",
             transform: "translate(-50%, -50%)",
-            ...(selectedKey && isActive
-              ? ({ ringOffsetColor: "var(--surface-2, var(--surface))" } as any)
-              : {}),
           }}
         />
-      );
-    })}
-  </div>
-</div>
+
+        {/* 페널티박스 */}
+        {[
+          { side: "left", x: 0 },
+          { side: "right", x: 105 - 16.5 },
+        ].map((b) => (
+          <div
+            key={b.side}
+            className="absolute border border-white/20"
+            style={{
+              left: `${(b.x / 105) * 100}%`,
+              top: `${((68 / 2 - 40.32 / 2) / 68) * 100}%`,
+              width: `${(16.5 / 105) * 100}%`,
+              height: `${(40.32 / 68) * 100}%`,
+            }}
+          />
+        ))}
+
+        {/* 골에어리어 */}
+        {[
+          { side: "left", x: 0 },
+          { side: "right", x: 105 - 5.5 },
+        ].map((b) => (
+          <div
+            key={b.side}
+            className="absolute border border-white/20"
+            style={{
+              left: `${(b.x / 105) * 100}%`,
+              top: `${((68 / 2 - 18.32 / 2) / 68) * 100}%`,
+              width: `${(5.5 / 105) * 100}%`,
+              height: `${(18.32 / 68) * 100}%`,
+            }}
+          />
+        ))}
+
+        {/* 페널티 스폿 */}
+        {[11, 105 - 11].map((x, i) => (
+          <div
+            key={i}
+            className="absolute w-1.5 h-1.5 bg-white rounded-full"
+            style={{
+              left: `${(x / 105) * 100}%`,
+              top: "50%",
+              transform: "translate(-50%, -50%)",
+            }}
+          />
+        ))}
+
+        {/* 슈팅 포인트 */}
+        {filteredEvents.map((e) => {
+          const posM = shotToMeter(e.shot, e.team, searchSide);
+          const { leftPct, topPct } = meterToPct(posM);
+
+          const isSearchUserShot = e.team === searchSide;
+          const isActive = selectedKey === e.key;
+
+          return (
+            <button
+              key={e.key}
+              onClick={(ev) => {
+                ev.stopPropagation();
+                setSelectedKey(e.key);
+              }}
+              className={`
+                absolute rounded-full transition-all duration-200
+                ${e.isGoal ? "w-4 h-4" : "w-2.5 h-2.5"}
+                ${isSearchUserShot ? "bg-[#34E27A]" : "bg-red-400"}
+                ${
+                  selectedKey
+                    ? isActive
+                      ? "opacity-100 scale-110 ring-2 ring-blue-400 ring-offset-2 z-20"
+                      : "opacity-30"
+                    : "opacity-100"
+                }
+              `}
+              style={{
+                left: `${leftPct}%`,
+                top: `${topPct}%`,
+                transform: "translate(-50%, -50%)",
+                ...(selectedKey && isActive
+                  ? ({ ringOffsetColor: "var(--surface-2, var(--surface))" } as any)
+                  : {}),
+              }}
+            />
+          );
+        })}
+      </div>
 
       {/* 선택 정보 */}
       {selected && (
         <div
-  className="rounded-xl p-4 text-sm border"
-  style={{ background: "var(--surface)", borderColor: "var(--border)" }}
->
-  <div className="font-semibold" style={{ color: "var(--text-main)" }}>
+          className="rounded-xl p-4 text-sm border"
+          style={{ background: "var(--surface)", borderColor: "var(--border)" }}
+        >
+          <div className="font-semibold" style={{ color: "var(--text-main)" }}>
             {selected.isGoal ? "골" : "슈팅"} ·{" "}
             {selected.team === "home" ? home.nickname : away.nickname}
           </div>
           <div style={{ color: "var(--text-sub)" }}>
-    {getPlayerDisplay(selected.shot.spId).name}
-  </div>
-  <div style={{ color: "var(--text-sub)" }}>{selected.label}분대</div>
-  <div style={{ color: "var(--text-sub)" }}>
-    골대까지 거리: {selectedDistM?.toFixed(1)}m
-  </div>
-  {/* 🧠 한 줄 해석 (여기!) */}
-    <div
-      className="mt-2 text-sm"
-      style={{ color: "var(--text-sub)" }}
-    >
-      {explainLine}
-    </div>
-</div>
+            {getPlayerDisplay(selected.shot.spId).name}
+          </div>
+          <div style={{ color: "var(--text-sub)" }}>{selected.label}분대</div>
+          <div style={{ color: "var(--text-sub)" }}>
+            골대까지 거리: {selectedDistM?.toFixed(1)}m
+          </div>
+          <div className="mt-2 text-sm" style={{ color: "var(--text-sub)" }}>
+            {explainLine}
+          </div>
+        </div>
       )}
     </div>
   );

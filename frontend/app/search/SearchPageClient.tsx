@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import SearchBox from "@/app/components/SearchBox";
 import { useLoading } from "@/app/providers/LoadingProvider";
@@ -84,6 +84,15 @@ export default function SearchPageClient() {
     return raw.trim();
   }, [sp]);
 
+  const router = useRouter();
+
+const type = useMemo(() => {
+  const raw = sp.get("type"); // 화면 URL용
+  if (!raw) return null;      // 전체
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : null;
+}, [sp]);
+
   const [data, setData] = useState<ApiResult | null>(null);
   const PAGE_SIZE = 20;
 const MAX_SHOW = 100;
@@ -91,7 +100,7 @@ const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
 useEffect(() => {
   setVisibleCount(PAGE_SIZE);
-}, [nickname]);
+}, [nickname, type]);
 
   const { setLoading } = useLoading();
 
@@ -106,10 +115,11 @@ useEffect(() => {
 
       setLoading(true);
       try {
-        const res = await fetch(
-          `/api/search?nickname=${encodeURIComponent(nickname)}`,
-          { cache: "no-store" }
-        );
+        const qs = new URLSearchParams();
+qs.set("nickname", nickname);
+if (type !== null) qs.set("matchtype", String(type)); // ✅ API는 matchtype
+
+const res = await fetch(`/api/search?${qs.toString()}`, { cache: "no-store" });
         const json = (await res.json().catch(() => null)) as ApiResult | null;
 
         if (ignore) return;
@@ -134,7 +144,7 @@ useEffect(() => {
     return () => {
       ignore = true;
     };
-  }, [nickname]);
+  }, [nickname, type]);
 
   // ✅ 닉네임이 없을 때
   if (!nickname) {
@@ -152,6 +162,36 @@ useEffect(() => {
     return (
       <div className="max-w-3xl mx-auto p-6 space-y-6">
         <SearchBox initialValue={nickname} />
+        <div className="flex gap-2 overflow-x-auto">
+  {[
+    { label: "전체", type: null },
+    { label: "공식경기", type: 50 },
+    { label: "커스텀매치", type: 40 },
+    { label: "감독모드", type: 52 },
+    { label: "친선경기", type: 60 },
+  ].map((t) => {
+    const active = (t.type ?? null) === (type ?? null);
+
+    return (
+      <button
+        key={t.label}
+        type="button"
+        onClick={() => {
+          const qs = new URLSearchParams();
+          qs.set("nickname", nickname);
+          if (t.type !== null) qs.set("type", String(t.type)); // ✅ URL은 type
+          router.push(`/search?${qs.toString()}`);
+        }}
+        className={[
+          "px-3 py-1.5 rounded-full text-sm border whitespace-nowrap",
+          active ? "bg-white text-black border-white" : "bg-transparent text-gray-300 border-white/20",
+        ].join(" ")}
+      >
+        {t.label}
+      </button>
+    );
+  })}
+</div>
         <div
   className="border rounded-xl p-4"
   style={{ background: "var(--surface)", borderColor: "var(--border)" }}
@@ -185,12 +225,20 @@ useEffect(() => {
 
   // ✅ 정상 렌더
   const matches = data.matches ?? [];
-  
+
+  const typeLabel =
+  type === null ? "전체" :
+  type === 50 ? "공식경기" :
+  type === 40 ? "커스텀매치" :
+  type === 52 ? "감독모드" :
+  type === 60 ? "친선경기" : `타입 ${type}`;
+
   const { winRate, streak, streakType } = getSummary(matches);
 
   return (
     <div className="max-w-3xl mx-auto p-6 space-y-6">
       <SearchBox initialValue={nickname} />
+      
 <div
   className="border rounded-xl p-6 space-y-4"
   style={{ background: "var(--surface)", borderColor: "var(--border)" }}
@@ -237,7 +285,38 @@ useEffect(() => {
   take={20}
 />
 
+<div className="flex gap-2 overflow-x-auto">
+  {[
+    { label: "전체", type: null },
+    { label: "공식경기", type: 50 },
+    { label: "커스텀매치", type: 40 },
+    { label: "감독모드", type: 52 },
+    { label: "친선경기", type: 60 },
+  ].map((t) => {
+    const active = (t.type ?? null) === (type ?? null);
 
+    return (
+      <button
+        key={t.label}
+        type="button"
+        onClick={() => {
+          const qs = new URLSearchParams();
+          qs.set("nickname", nickname);
+          if (t.type !== null) qs.set("type", String(t.type));
+          router.push(`/search?${qs.toString()}`);
+        }}
+        className={[
+          "px-3 py-1.5 rounded-full text-sm border whitespace-nowrap",
+          active
+            ? "bg-white text-black border-white"
+            : "bg-transparent text-gray-300 border-white/20",
+        ].join(" ")}
+      >
+        {t.label}
+      </button>
+    );
+  })}
+</div>
 
       <div className="space-y-6">
         {matches
@@ -282,8 +361,8 @@ useEffect(() => {
               />
 
               <div className="text-xs text-gray-300">
-                {formatDate(m.matchDate)} · 공식 경기
-              </div>
+  {formatDate(m.matchDate)} · {type === null ? (m.matchType ?? "경기") : typeLabel}
+</div>
 
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
