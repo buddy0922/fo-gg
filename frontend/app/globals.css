@@ -52,13 +52,17 @@ body {
 }
 
 html.dark {
-  /* Dark mode gradient palette */
-  --bg-base: #070b12;
-  --bg-radial-1: rgba(0, 255, 200, 0.616);    /* neon green */
-  --bg-radial-2: rgba(111, 229, 255, 0.622);  /* blue/purple */
-  --bg-radial-3: rgba(181, 94, 253, 0.46);    /* purple */
+  --bg-base: #050609;
+
+  /* 🔮 4-color FC gradient */
+  --bg-radial-1: rgb(229, 67, 254);          /* magenta */
+  --bg-radial-2: rgba(162, 0, 255, 0.99);    /* deep purple */
+  --bg-radial-3: rgba(0, 195, 255, 0.95);    /* cyan */
+  --bg-radial-4: rgb(36, 251, 61);            /* neon green */
+
   --bg-grid: rgba(255, 255, 255, 0.06);
-    --text-main: rgba(255,255,255,0.92);
+
+  --text-main: rgba(255,255,255,0.92);
   --text-muted: rgba(255,255,255,0.65);
 
   --header-bg: rgba(7, 11, 18, 0.55);
@@ -68,6 +72,7 @@ html.dark {
   --input-border: rgba(255, 255, 255, 0.16);
 
   --logo-color: #ffffff;
+
 
   /* text */
   --text-main: #e5e7eb;                 /* 다크 기본 글씨 = 흰색 */
@@ -104,6 +109,17 @@ html.dark .main-logo {
   font-weight: 800;
 }
 
+.fc-logo-font {
+  font-family: var(--font-fc-logo);
+}
+
+/* 로고용 글자 그림자 */
+.text-shadow-logo {
+  text-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.272),
+    0 0 18px rgba(0, 0, 0, 0.024);
+}
+
 /* 전체 배경을 body 자체가 아니라 "고정 레이어"로 깔아야
    페이지 이동/스크롤에도 계속 유지되고, 컴포넌트 배경과도 잘 섞임 */
 body {
@@ -128,21 +144,56 @@ body::before {
   filter: saturate(1.05);
 }
 
-/* 2번 이미지처럼 “은은한 패턴/그리드” 느낌 추가 (선택) */
-body::after {
+html.dark body::before {
   content: "";
   position: fixed;
   inset: 0;
   z-index: -1;
   pointer-events: none;
 
-  background-image:
-    linear-gradient(var(--bg-grid) 1px, transparent 1px),
-    linear-gradient(90deg, var(--bg-grid) 1px, transparent 1px);
-  background-size: 70px 70px;
-  opacity: 0.25;
-  mask-image: radial-gradient(800px 500px at 60% 35%, black 100%, transparent 75%);
+  background:
+    /* 🟣 좌상단: 마젠타 */
+    radial-gradient(
+      200px 220px at 98% 98%,
+      var(--bg-radial-1),
+      transparent 200%
+    ),
+
+    /* 🟪 상단 중앙: 딥 퍼플 */
+    radial-gradient(
+      950px 650px at 80% 68%,
+      var(--bg-radial-2),
+      transparent 50%
+    ),
+
+    /* 🔵 우중단: 시안 */
+    radial-gradient(
+      1000px 600px at 50% 40%,
+      var(--bg-radial-3),
+      transparent 66%
+    ),
+
+    /* 🟢 우하단: 네온 그린 */
+    radial-gradient(
+      1000px 500px at 0% 1%,
+      var(--bg-radial-4),
+      transparent 98%
+    ),
+
+    /* 🌑 중앙 어둠 강화 (사진 느낌 핵심) */
+    radial-gradient(
+      1200px 900px at 50% 55%,
+      rgba(0,0,0,0.0),
+      rgba(0,0,0,0.70) 0%
+    ),
+
+    var(--bg-base);
+
+  filter: saturate(1.1);
 }
+
+
+/* 2번 이미지처럼 “은은한 패턴/그리드” 느낌 추가 (선택) */
 
 input::placeholder {
   color: var(--input-placeholder);

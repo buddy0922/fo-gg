@@ -23,6 +23,7 @@ type ApiResult =
         opponent: string;
         matchDate?: string;
         matchType?: string;
+        matchTypeId?: number;
       }>;
     }
   | {
@@ -340,10 +341,10 @@ const res = await fetch(`/api/search?${qs.toString()}`, { cache: "no-store" });
                 hover:shadow-lg
                 ${
                   m.result === "승"
-  ? "bg-gradient-to-r from-[#2C7BC4] to-[#1B2F6A]"
+  ? "bg-gradient-to-r from-[#2C7BC4] to-[#4A6CFF]"
   : m.result === "패"
-  ? "bg-gradient-to-r from-[#7A1F2B] to-[#3A0F16]"
-  : "bg-gradient-to-r from-[#8A7A2A] to-[#4A4318]"
+  ? "bg-gradient-to-r from-[#E25555] to-[#e2444f]"
+  : "bg-gradient-to-r from-[#dbb411ff] to-[#dbb411ff]"
                 }
               `}
             >
@@ -361,7 +362,7 @@ const res = await fetch(`/api/search?${qs.toString()}`, { cache: "no-store" });
               />
 
               <div className="text-xs text-gray-300">
-  {formatDate(m.matchDate)} · {type === null ? (m.matchType ?? "경기") : typeLabel}
+  {formatDate(m.matchDate)} · {type === null ? (m.matchType ?? "알 수 없음") : typeLabel}
 </div>
 
               <div className="flex items-center justify-between">

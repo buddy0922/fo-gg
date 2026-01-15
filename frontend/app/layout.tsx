@@ -2,12 +2,11 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Suspense } from "react";
 import "./globals.css";
-
+import { fcLogoFont } from "./fonts/fcLogoFont";
 import Header from "@/app/components/Header";
 import ClientLoading from "@/app/ClientLoading";
 import  LoadingProvider  from "@/app/providers/LoadingProvider";
 import ThemeProvider from "./providers/ThemeProvider";
-
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -30,7 +29,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="ko">
+    <html lang="ko" className={fcLogoFont.variable}>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-[#0B0F19] text-white`}
       >

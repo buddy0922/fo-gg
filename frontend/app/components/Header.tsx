@@ -16,7 +16,7 @@ export default function Header() {
         {/* 로고 */}
         <Link
           href="/"
-          className="md:text-3xl font-extrabold tracking-tight logo-font"
+          className="md:text-2xl font-extrabold tracking-[0.03em] fc-logo-font"
           style={{ color: "var(--text-main)" }}
         >
           FO.GG

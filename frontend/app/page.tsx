@@ -1,5 +1,8 @@
 import SearchBox from "@/app/components/SearchBox";
 import { Suspense } from "react";
+import { fcLogoFont } from "./fonts/fcLogoFont";
+
+
 export default function Home() {
   return (
     <main className="min-h-screen flex items-center justify-center px-6">
@@ -8,18 +11,28 @@ export default function Home() {
 
         {/* 🔥 FO.GG 로고 */}
         <div>
-          <h1 className="text-5xl md:text-6xl font-extrabold tracking-tight logo-font">
+          <h1 className="text-4xl text-shadow-logo md:text-5xl font-extrabold tracking-[0.03em] fc-logo-font">
   FO.GG
 </h1>
         </div>
 
         {/* 메인 문구 */}
         <div className="space-y-3">
-          <h2 className="text-3xl md:text-4xl font-extrabold logo-font">
-            FC ONLINE 전적을{" "}
-            <span className="text-[#34E27A]">한눈에</span>
-          </h2>
-          <p className="text-gray-400 text-base md:text-lg">
+          <h2 className="inline-flex items-baseline">
+  {/* ✅ 여기만 fc-logo-font 적용 */}
+  <span className="fc-logo-font text-shadow-logo text-3xl md:text-4xl tracking-[0.01em] mr-10 scale-[1.10] inline-block origin-left">
+    FC ONLINE
+  </span>
+
+  {/* ✅ 한글은 기본 폰트 유지 */}
+  <span className="text-4xl md:text-5xl text-shadow-logo font-extrabold mr-3">
+    전적을
+  </span>
+  <span className="text-[#34E27A] text-4xl text-shadow-logo md:text-5xl font-extrabold">
+    한눈에
+  </span>
+</h2>
+          <p className="text-gray-400 text-shadow-logo text-base md:text-lg">
             최근 경기 · 승률 · 상세 경기 분석까지
           </p>
         </div>

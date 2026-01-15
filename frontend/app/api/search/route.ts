@@ -28,6 +28,15 @@ async function getDivisionMeta() {
   return res.json();
 }
 
+async function getMatchTypeMeta() {
+  const res = await fetch(
+    "https://open.api.nexon.com/static/fconline/meta/matchtype.json",
+    { cache: "no-store" }
+  );
+  if (!res.ok) return null;
+  return res.json();
+}
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const rawNickname = searchParams.get("nickname");
@@ -85,43 +94,41 @@ export async function GET(req: Request) {
         ? meta.find((d: any) => d.divisionId === highestDivision)?.divisionName
         : undefined;
 
+    const matchTypeMeta = await getMatchTypeMeta();
+    const matchTypeNameById =
+  Array.isArray(matchTypeMeta)
+    ? new Map<number, string>(matchTypeMeta.map((x: any) => [x.matchtype, x.desc]))
+    : new Map<number, string>();  
+
     /* 3) recent matches (✅ v1/user/match) */
-const matchtypeParam = searchParams.get("matchtype");
-const requestedType = matchtypeParam ? Number(matchtypeParam) : null;
+const matchTypeParam = searchParams.get("matchtype");
+const matchTypeFilter = matchTypeParam ? Number(matchTypeParam) : null;
 
-// 전체면 여러 타입을 합쳐서 보여주기
-const TYPES_FOR_ALL = [50, 40, 52, 60];
-const typesToFetch = requestedType === null ? TYPES_FOR_ALL : [requestedType];
+// 전체 탭이면 여러 타입을 합쳐서
+const ALL_MATCH_TYPES = [50, 40, 52, 60]; // 공식/커스텀/감독/친선
+const typesToFetch = matchTypeFilter !== null ? [matchTypeFilter] : ALL_MATCH_TYPES;
 
-// matchId 중복 방지
-const matchIdSet = new Set<string>();
-const matchIdsAll: string[] = [];
+// 중복 제거 + matchType 보존(나중에 라벨에 쓸 수도 있음)
+const matchMap = new Map<string, number>(); // matchId -> matchType
 
 for (const mt of typesToFetch) {
-  const matchRes = await nxFetch(
+  const res = await nxFetch(
     `/user/match?ouid=${encodeURIComponent(ouid)}&matchtype=${mt}&offset=0&limit=${MATCH_LIMIT}`
   );
 
-  if (matchRes.status === 503) {
+  if (res.status === 503) {
     return NextResponse.json({ error: "temporary_unavailable" }, { status: 503 });
   }
+  if (!res.ok) continue;
 
-  if (!matchRes.ok) {
-    const text = await matchRes.text().catch(() => "");
-    return NextResponse.json(
-      { error: "upstream_error", status: matchRes.status, body: text.slice(0, 500) },
-      { status: 500 }
-    );
-  }
-
-  const ids: string[] = (await matchRes.json()) ?? [];
+  const ids: string[] = (await res.json().catch(() => [])) ?? [];
   for (const id of ids) {
-    if (!matchIdSet.has(id)) {
-      matchIdSet.add(id);
-      matchIdsAll.push(id);
-    }
+    if (!matchMap.has(id)) matchMap.set(id, mt);
   }
 }
+
+const matchIdsAll = Array.from(matchMap.keys());
+
 
     /* 4) match-detail (✅ v1/match-detail?matchid=...) */
     const results: any[] = [];
@@ -142,19 +149,28 @@ for (const mt of typesToFetch) {
         const myGoal = me.shoot?.goalTotalDisplay ?? 0;
         const enemyGoal = enemy.shoot?.goalTotalDisplay ?? 0;
 
-        results.push({
-          matchId,
-          result: myGoal > enemyGoal ? "승" : myGoal < enemyGoal ? "패" : "무",
-          score: `${myGoal} : ${enemyGoal}`,
-          opponent: enemy.nickname,
-          matchDate: match.matchDate,
-          // ✅ D) matchType 라벨을 하드코딩 제거 (일단 matchtype 숫자 노출)
-          matchType: `matchtype=${matchtype}`,
-        });
+        const mt = Number(match?.matchType);
+        const mtName = matchTypeNameById.get(mt) ?? `타입 ${mt}`;
+
+results.push({
+  matchId,
+  result: myGoal > enemyGoal ? "승" : myGoal < enemyGoal ? "패" : "무",
+  score: `${myGoal} : ${enemyGoal}`,
+  opponent: enemy.nickname,
+  matchDate: match.matchDate,
+  matchType: mtName,         // ✅ 카드에 쓸 라벨
+  matchTypeId: mt,           // ✅ 필요하면 나중에 필터/아이콘용으로 사용
+});
       } catch {
         continue;
       }
     }
+
+    results.sort((a, b) => {
+  const ta = a.matchDate ? new Date(a.matchDate).getTime() : 0;
+  const tb = b.matchDate ? new Date(b.matchDate).getTime() : 0;
+  return tb - ta; // 최신순
+});
 
     const response = {
       ouid,
