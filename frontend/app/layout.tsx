@@ -7,7 +7,7 @@ import Header from "@/app/components/Header";
 import ClientLoading from "@/app/ClientLoading";
 import  LoadingProvider  from "@/app/providers/LoadingProvider";
 import ThemeProvider from "./providers/ThemeProvider";
-
+import AuthProvider from "./providers/AuthProvider";
 
 
 const geistSans = Geist({
@@ -35,6 +35,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-[#0B0F19] text-white`}
       >
+        <AuthProvider>
         <ThemeProvider>
           <LoadingProvider>
             <Header />
@@ -50,6 +51,7 @@ export default function RootLayout({
             </main>
           </LoadingProvider>
         </ThemeProvider>
+        </AuthProvider>
       </body>
     </html>
   );
