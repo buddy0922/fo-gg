@@ -50,7 +50,7 @@ export default function PrivacyPage() {
           개인정보 관련 문의는 아래 이메일로 연락해 주세요.
         </p>
         <p className="text-gray-300 font-semibold">
-          📧 contact@fcon.kr
+          📧 foggservice12@gmail.com
         </p>
       </section>
 
