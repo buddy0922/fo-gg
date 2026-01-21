@@ -3,17 +3,17 @@ export default function PrivacyPage() {
     <div className="max-w-3xl mx-auto px-6 py-16 space-y-6">
       <h1 className="text-3xl font-extrabold">개인정보처리방침</h1>
 
-      <p className="text-gray-300">
+      <p className="text-zinc-700 dark:text-zinc-300">
         FCON(이하 &quot;본 서비스&quot;)은 이용자의 개인정보를 중요하게 생각하며,
         관련 법령을 준수합니다.
       </p>
 
       <section className="space-y-2">
         <h2 className="text-xl font-bold">1. 수집하는 개인정보 항목</h2>
-        <p className="text-gray-300">
+        <p className="text-zinc-700 dark:text-zinc-300">
           본 서비스는 Google OAuth 로그인을 통해 아래 정보를 수집합니다.
         </p>
-        <ul className="list-disc list-inside text-gray-300">
+        <ul className="list-disc list-inside text-zinc-700 dark:text-zinc-300">
           <li>이메일 주소</li>
           <li>프로필 이름</li>
           <li>프로필 이미지(URL)</li>
@@ -22,7 +22,7 @@ export default function PrivacyPage() {
 
       <section className="space-y-2">
         <h2 className="text-xl font-bold">2. 개인정보의 이용 목적</h2>
-        <ul className="list-disc list-inside text-gray-300">
+        <ul className="list-disc list-inside text-zinc-700 dark:text-zinc-300">
           <li>사용자 로그인 및 인증</li>
           <li>서비스 이용 기록 관리</li>
           <li>좋아요 등 사용자 기능 제공</li>
