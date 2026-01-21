@@ -69,6 +69,7 @@ function getSummary(matches: any[]) {
   return { winRate, streak, streakType };
 }
 
+
 function formatDate(dateString?: string) {
   if (!dateString) return "날짜 정보 없음";
   const d = new Date(dateString);
@@ -87,6 +88,20 @@ export default function SearchPageClient() {
 
   const router = useRouter();
 
+  const PAGE_SIZE = 20;
+
+const [user, setUser] = useState<null | {
+  nickname: string;
+  highestDivision?: number;
+  highestDivisionName?: string;
+}>(null);
+
+const [matches, setMatches] = useState<any[]>([]);
+const [nextOffset, setNextOffset] = useState(0);
+const [hasMore, setHasMore] = useState(false);
+
+const [error, setError] = useState<null | { error: string; status?: number; body?: string }>(null);
+
 const type = useMemo(() => {
   const raw = sp.get("type"); // 화면 URL용
   if (!raw) return null;      // 전체
@@ -95,57 +110,106 @@ const type = useMemo(() => {
 }, [sp]);
 
   const [data, setData] = useState<ApiResult | null>(null);
-  const PAGE_SIZE = 20;
 const MAX_SHOW = 100;
 const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
 useEffect(() => {
-  setVisibleCount(PAGE_SIZE);
+  setUser(null);
+  setMatches([]);
+  setNextOffset(0);
+  setHasMore(false);
+  setError(null);
 }, [nickname, type]);
 
   const { setLoading } = useLoading();
 
   useEffect(() => {
-    let ignore = false;
+  let ignore = false;
 
-    async function run() {
-      if (!nickname) {
-        setData(null);
+  async function loadFirstPage() {
+    if (!nickname) {
+      setUser(null);
+      setMatches([]);
+      setNextOffset(0);
+      setHasMore(false);
+      setError(null);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const qs = new URLSearchParams();
+      qs.set("nickname", nickname);
+
+      // ✅ 전체 탭이면 type을 안 넣고, 특정 탭이면 matchtype으로
+      if (type !== null) qs.set("matchtype", String(type));
+
+      // ✅ 페이지네이션 파라미터 (서버도 이걸 받도록 바꿔야 함)
+      qs.set("offset", "0");
+      qs.set("limit", String(PAGE_SIZE));
+
+      const res = await fetch(`/api/search?${qs.toString()}`, { cache: "no-store" });
+      const json = await res.json().catch(() => null);
+
+      if (ignore) return;
+
+      if (!res.ok || !json || json.error) {
+        setError(json ?? { error: "upstream_error", status: res.status, body: "no body" });
+        setUser(null);
+        setMatches([]);
+        setHasMore(false);
+        setNextOffset(0);
         return;
       }
 
-      setLoading(true);
-      try {
-        const qs = new URLSearchParams();
-qs.set("nickname", nickname);
-if (type !== null) qs.set("matchtype", String(type)); // ✅ API는 matchtype
-
-const res = await fetch(`/api/search?${qs.toString()}`, { cache: "no-store" });
-        const json = (await res.json().catch(() => null)) as ApiResult | null;
-
-        if (ignore) return;
-
-        if (!res.ok) {
-          setData(
-            json ?? { error: "upstream_error", status: res.status, body: "no body" }
-          );
-        } else {
-          setData(json as ApiResult);
-        }
-      } catch (e: any) {
-        if (!ignore) {
-          setData({ error: "network_error", body: String(e?.message ?? e) });
-        }
-      } finally {
-        if (!ignore) setLoading(false);
+      // ✅ 서버 응답에서 user/matches/nextOffset/hasMore 받는다고 가정
+      setUser(json.user ?? null);
+      setMatches(json.matches ?? []);
+      setNextOffset(json.nextOffset ?? PAGE_SIZE);
+      setHasMore(Boolean(json.hasMore));
+      setError(null);
+    } catch (e: any) {
+      if (!ignore) {
+        setError({ error: "network_error", body: String(e?.message ?? e) });
       }
+    } finally {
+      if (!ignore) setLoading(false);
+    }
+  }
+
+  loadFirstPage();
+  return () => {
+    ignore = true;
+  };
+}, [nickname, type, setLoading]);
+
+async function loadMore() {
+  if (!nickname || !hasMore) return;
+
+  setLoading(true);
+  try {
+    const qs = new URLSearchParams();
+    qs.set("nickname", nickname);
+    if (type !== null) qs.set("matchtype", String(type));
+
+    qs.set("offset", String(nextOffset));
+    qs.set("limit", String(PAGE_SIZE));
+
+    const res = await fetch(`/api/search?${qs.toString()}`, { cache: "no-store" });
+    const json = await res.json().catch(() => null);
+
+    if (!res.ok || !json || json.error) {
+      setError(json ?? { error: "upstream_error", status: res.status, body: "no body" });
+      return;
     }
 
-    run();
-    return () => {
-      ignore = true;
-    };
-  }, [nickname, type]);
+    setMatches((prev) => [...prev, ...(json.matches ?? [])]);
+    setNextOffset(json.nextOffset ?? nextOffset + PAGE_SIZE);
+    setHasMore(Boolean(json.hasMore));
+  } finally {
+    setLoading(false);
+  }
+}
 
   // ✅ 닉네임이 없을 때
   if (!nickname) {
@@ -159,7 +223,7 @@ const res = await fetch(`/api/search?${qs.toString()}`, { cache: "no-store" });
 
 
   // ✅ 에러 처리
-  if (!data || "error" in data) {
+  if (error) {
     return (
       <div className="max-w-3xl mx-auto p-6 space-y-6">
         <SearchBox initialValue={nickname} />
@@ -225,7 +289,6 @@ const res = await fetch(`/api/search?${qs.toString()}`, { cache: "no-store" });
   }
 
   // ✅ 정상 렌더
-  const matches = data.matches ?? [];
 
   const typeLabel =
   type === null ? "전체" :
@@ -382,18 +445,15 @@ const res = await fetch(`/api/search?${qs.toString()}`, { cache: "no-store" });
           </Link>
         ))}
       </div>
-      {Math.min(visibleCount, MAX_SHOW) < Math.min(matches.length, MAX_SHOW) && (
+      {hasMore && (
   <div className="flex justify-center pt-2">
     <button
       type="button"
-      onClick={() =>
-        setVisibleCount((v) => Math.min(v + PAGE_SIZE, MAX_SHOW))
-      }
-      className="px-4 py-2 rounded-xl text-sm font-semibold
-                 border transition hover:opacity-90"
+      onClick={loadMore}
+      className="px-4 py-2 rounded-xl text-sm font-semibold border transition hover:opacity-90"
       style={{ background: "var(--surface)", borderColor: "var(--border)" }}
     >
-      더보기 ({Math.min(visibleCount, MAX_SHOW)}/{Math.min(matches.length, MAX_SHOW)})
+      더보기
     </button>
   </div>
 )}

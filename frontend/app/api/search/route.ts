@@ -7,6 +7,9 @@ export const revalidate = 0;
 const API_BASE = "https://open.api.nexon.com/fconline/v1";
 const MATCH_LIMIT = 100;
 
+// 전체탭에서 합칠 타입
+const ALL_MATCH_TYPES = [50, 40, 52, 60]; // 공식/커스텀/감독/친선
+
 async function nxFetch(pathWithQuery: string) {
   const apiKey = process.env.NEXON_API_KEY;
   if (!apiKey) throw new Error("missing_api_key");
@@ -37,26 +40,108 @@ async function getMatchTypeMeta() {
   return res.json();
 }
 
+type CachedBase = {
+  ouid: string;
+  user: {
+    nickname: string;
+    highestDivision?: number;
+    highestDivisionName?: string;
+  };
+  matchIdsAll: string[];
+};
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
+
   const rawNickname = searchParams.get("nickname");
-
-  // ✅ A) matchtype 파라미터 받기 (없으면 기본값 50)
-  const rawMatchtype = searchParams.get("matchtype"); // "50" 같은 문자열
-  const matchtype = rawMatchtype ? Number(rawMatchtype) : 50;
-
   const nickname = (rawNickname ?? "").trim();
   if (!nickname) {
     return NextResponse.json({ error: "nickname_required" }, { status: 400 });
   }
 
-  // ✅ B) 캐시 키에 matchtype 포함 (탭별 캐시 분리)
-  const cacheKey = `search:${nickname.toLowerCase()}:mt:${rawMatchtype ?? "default"}`;
-  const cached = getCache(cacheKey);
-  if (cached) return NextResponse.json(cached);
+  // ✅ matchtype: URL에서 type(프론트용) 말고, API는 matchtype으로 받음
+  // - 전체 탭이면 matchtype 없음(null)
+  const rawMatchtype = searchParams.get("matchtype");
+  const matchtypeFilter = rawMatchtype ? Number(rawMatchtype) : null;
+
+  // ✅ pagination
+  const rawOffset = searchParams.get("offset");
+  const rawLimit = searchParams.get("limit");
+  const offset = rawOffset ? Math.max(0, Number(rawOffset)) : 0;
+  const limit = rawLimit ? Math.min(50, Math.max(1, Number(rawLimit))) : 20;
+
+  // ✅ 캐시는 "base(ouid/user/matchIdsAll)"만 저장 (offset/limit은 캐시에 포함 X)
+  const cacheKey = `search:${nickname.toLowerCase()}:mt:${rawMatchtype ?? "all"}`;
+  const cachedBase = getCache(cacheKey) as CachedBase | null;
 
   try {
-    /* 1) nickname -> ouid  (✅ v1/id) */
+    // 0) matchType meta (라벨)
+    const matchTypeMeta = await getMatchTypeMeta();
+    const matchTypeNameById =
+      Array.isArray(matchTypeMeta)
+        ? new Map<number, string>(matchTypeMeta.map((x: any) => [x.matchtype, x.desc]))
+        : new Map<number, string>();
+
+    // ✅ A) base가 캐시에 있으면 matchIdsAll 만들기 과정 스킵
+    if (cachedBase) {
+      const { ouid, user, matchIdsAll } = cachedBase;
+
+      const pageIds = matchIdsAll.slice(offset, offset + limit);
+      const results: any[] = [];
+
+      for (const matchId of pageIds) {
+        try {
+          const detailRes = await nxFetch(`/match-detail?matchid=${encodeURIComponent(matchId)}`);
+          if (!detailRes.ok) continue;
+
+          const match = await detailRes.json();
+          const infos = match?.matchInfo;
+          if (!infos || infos.length < 2) continue;
+
+          const me = infos.find((p: any) => p.ouid === ouid);
+          const enemy = infos.find((p: any) => p.ouid !== ouid);
+          if (!me || !enemy) continue;
+
+          const myGoal = me.shoot?.goalTotalDisplay ?? 0;
+          const enemyGoal = enemy.shoot?.goalTotalDisplay ?? 0;
+
+          const mt = Number(match?.matchType);
+          const mtName = matchTypeNameById.get(mt) ?? `타입 ${mt}`;
+
+          results.push({
+            matchId,
+            result: myGoal > enemyGoal ? "승" : myGoal < enemyGoal ? "패" : "무",
+            score: `${myGoal} : ${enemyGoal}`,
+            opponent: enemy.nickname,
+            matchDate: match.matchDate,
+            matchType: mtName,
+            matchTypeId: mt,
+          });
+        } catch {
+          continue;
+        }
+      }
+
+      results.sort((a, b) => {
+        const ta = a.matchDate ? new Date(a.matchDate).getTime() : 0;
+        const tb = b.matchDate ? new Date(b.matchDate).getTime() : 0;
+        return tb - ta;
+      });
+
+      const nextOffset = offset + results.length;
+      const hasMore = nextOffset < matchIdsAll.length;
+
+      return NextResponse.json({
+        ouid,
+        user,
+        matches: results,
+        nextOffset,
+        hasMore,
+      });
+    }
+
+    // ✅ B) base가 없으면: ouid + matchIdsAll 만들어서 캐시 후, 첫 페이지 detail만
+    // 1) nickname -> ouid
     const idRes = await nxFetch(`/id?nickname=${encodeURIComponent(nickname)}`);
 
     if (idRes.status === 503) {
@@ -73,67 +158,56 @@ export async function GET(req: Request) {
 
     const idJson = await idRes.json();
     const ouid: string | undefined = idJson?.ouid;
-
     if (!ouid) {
       return NextResponse.json({ error: "user_not_found" }, { status: 404 });
     }
 
-    /* 2) maxdivision (✅ v1/user/maxdivision) */
+    // 2) maxdivision (공식 50 기준 유지)
     const maxDivRes = await nxFetch(`/user/maxdivision?ouid=${encodeURIComponent(ouid)}`);
     const maxDivJson = maxDivRes.ok ? await maxDivRes.json() : [];
     const list = Array.isArray(maxDivJson) ? maxDivJson : [];
 
-    // (기존 그대로) 최고 티어는 공식(50) 기준으로만 계산
     const official = list.filter((d: any) => d.matchType === 50);
     const highestDivision =
       official.length > 0 ? Math.max(...official.map((d: any) => d.division)) : undefined;
 
-    const meta = await getDivisionMeta();
+    const divMeta = await getDivisionMeta();
     const highestDivisionName =
-      highestDivision && Array.isArray(meta)
-        ? meta.find((d: any) => d.divisionId === highestDivision)?.divisionName
+      highestDivision && Array.isArray(divMeta)
+        ? divMeta.find((d: any) => d.divisionId === highestDivision)?.divisionName
         : undefined;
 
-    const matchTypeMeta = await getMatchTypeMeta();
-    const matchTypeNameById =
-  Array.isArray(matchTypeMeta)
-    ? new Map<number, string>(matchTypeMeta.map((x: any) => [x.matchtype, x.desc]))
-    : new Map<number, string>();  
+    // 3) recent match ids (전체 탭이면 4개 타입 합쳐서)
+    const typesToFetch = matchtypeFilter !== null ? [matchtypeFilter] : ALL_MATCH_TYPES;
 
-    /* 3) recent matches (✅ v1/user/match) */
-const matchTypeParam = searchParams.get("matchtype");
-const matchTypeFilter = matchTypeParam ? Number(matchTypeParam) : null;
+    const matchMap = new Map<string, number>(); // matchId -> matchType
+    for (const mt of typesToFetch) {
+      const res = await nxFetch(
+        `/user/match?ouid=${encodeURIComponent(ouid)}&matchtype=${mt}&offset=0&limit=${MATCH_LIMIT}`
+      );
 
-// 전체 탭이면 여러 타입을 합쳐서
-const ALL_MATCH_TYPES = [50, 40, 52, 60]; // 공식/커스텀/감독/친선
-const typesToFetch = matchTypeFilter !== null ? [matchTypeFilter] : ALL_MATCH_TYPES;
+      if (res.status === 503) {
+        return NextResponse.json({ error: "temporary_unavailable" }, { status: 503 });
+      }
+      if (!res.ok) continue;
 
-// 중복 제거 + matchType 보존(나중에 라벨에 쓸 수도 있음)
-const matchMap = new Map<string, number>(); // matchId -> matchType
+      const ids: string[] = (await res.json().catch(() => [])) ?? [];
+      for (const id of ids) {
+        if (!matchMap.has(id)) matchMap.set(id, mt);
+      }
+    }
 
-for (const mt of typesToFetch) {
-  const res = await nxFetch(
-    `/user/match?ouid=${encodeURIComponent(ouid)}&matchtype=${mt}&offset=0&limit=${MATCH_LIMIT}`
-  );
+    const matchIdsAll = Array.from(matchMap.keys());
 
-  if (res.status === 503) {
-    return NextResponse.json({ error: "temporary_unavailable" }, { status: 503 });
-  }
-  if (!res.ok) continue;
+    // ✅ base 캐시 저장 (5분)
+    const user = { nickname, highestDivision, highestDivisionName };
+    setCache(cacheKey, { ouid, user, matchIdsAll }, 300);
 
-  const ids: string[] = (await res.json().catch(() => [])) ?? [];
-  for (const id of ids) {
-    if (!matchMap.has(id)) matchMap.set(id, mt);
-  }
-}
-
-const matchIdsAll = Array.from(matchMap.keys());
-
-
-    /* 4) match-detail (✅ v1/match-detail?matchid=...) */
+    // 4) 첫 페이지 detail만
+    const pageIds = matchIdsAll.slice(offset, offset + limit);
     const results: any[] = [];
 
-    for (const matchId of matchIdsAll) {
+    for (const matchId of pageIds) {
       try {
         const detailRes = await nxFetch(`/match-detail?matchid=${encodeURIComponent(matchId)}`);
         if (!detailRes.ok) continue;
@@ -152,34 +226,36 @@ const matchIdsAll = Array.from(matchMap.keys());
         const mt = Number(match?.matchType);
         const mtName = matchTypeNameById.get(mt) ?? `타입 ${mt}`;
 
-results.push({
-  matchId,
-  result: myGoal > enemyGoal ? "승" : myGoal < enemyGoal ? "패" : "무",
-  score: `${myGoal} : ${enemyGoal}`,
-  opponent: enemy.nickname,
-  matchDate: match.matchDate,
-  matchType: mtName,         // ✅ 카드에 쓸 라벨
-  matchTypeId: mt,           // ✅ 필요하면 나중에 필터/아이콘용으로 사용
-});
+        results.push({
+          matchId,
+          result: myGoal > enemyGoal ? "승" : myGoal < enemyGoal ? "패" : "무",
+          score: `${myGoal} : ${enemyGoal}`,
+          opponent: enemy.nickname,
+          matchDate: match.matchDate,
+          matchType: mtName,
+          matchTypeId: mt,
+        });
       } catch {
         continue;
       }
     }
 
     results.sort((a, b) => {
-  const ta = a.matchDate ? new Date(a.matchDate).getTime() : 0;
-  const tb = b.matchDate ? new Date(b.matchDate).getTime() : 0;
-  return tb - ta; // 최신순
-});
+      const ta = a.matchDate ? new Date(a.matchDate).getTime() : 0;
+      const tb = b.matchDate ? new Date(b.matchDate).getTime() : 0;
+      return tb - ta;
+    });
 
-    const response = {
+    const nextOffset = offset + results.length;
+    const hasMore = nextOffset < matchIdsAll.length;
+
+    return NextResponse.json({
       ouid,
-      user: { nickname, highestDivision, highestDivisionName },
+      user,
       matches: results,
-    };
-
-    setCache(cacheKey, response, 60);
-    return NextResponse.json(response);
+      nextOffset,
+      hasMore,
+    });
   } catch (e: any) {
     return NextResponse.json(
       { error: "upstream_error", message: String(e?.message ?? e) },
