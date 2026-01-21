@@ -34,10 +34,58 @@ async function getDivisionMeta() {
 async function getMatchTypeMeta() {
   const res = await fetch(
     "https://open.api.nexon.com/static/fconline/meta/matchtype.json",
-    { cache: "no-store" }
+    { cache: "force-cache" } // ✅ 변경
   );
   if (!res.ok) return null;
   return res.json();
+}
+
+async function fetchDetailsBatch(ouid: string, ids: string[], matchTypeNameById: Map<number,string>) {
+  const results: any[] = [];
+  const CONCURRENCY = 6;
+
+  for (let i = 0; i < ids.length; i += CONCURRENCY) {
+    const chunk = ids.slice(i, i + CONCURRENCY);
+
+    const chunkResults = await Promise.all(
+      chunk.map(async (matchId) => {
+        try {
+          const detailRes = await nxFetch(`/match-detail?matchid=${encodeURIComponent(matchId)}`);
+          if (!detailRes.ok) return null;
+
+          const match = await detailRes.json();
+          const infos = match?.matchInfo;
+          if (!infos || infos.length < 2) return null;
+
+          const me = infos.find((p: any) => p.ouid === ouid);
+          const enemy = infos.find((p: any) => p.ouid !== ouid);
+          if (!me || !enemy) return null;
+
+          const myGoal = me.shoot?.goalTotalDisplay ?? 0;
+          const enemyGoal = enemy.shoot?.goalTotalDisplay ?? 0;
+
+          const mt = Number(match?.matchType);
+          const mtName = matchTypeNameById.get(mt) ?? `타입 ${mt}`;
+
+          return {
+            matchId,
+            result: myGoal > enemyGoal ? "승" : myGoal < enemyGoal ? "패" : "무",
+            score: `${myGoal} : ${enemyGoal}`,
+            opponent: enemy.nickname,
+            matchDate: match.matchDate,
+            matchType: mtName,
+            matchTypeId: mt,
+          };
+        } catch {
+          return null;
+        }
+      })
+    );
+
+    for (const r of chunkResults) if (r) results.push(r);
+  }
+
+  return results;
 }
 
 type CachedBase = {
@@ -85,51 +133,18 @@ export async function GET(req: Request) {
     // ✅ A) base가 캐시에 있으면 matchIdsAll 만들기 과정 스킵
     if (cachedBase) {
       const { ouid, user, matchIdsAll } = cachedBase;
-
       const pageIds = matchIdsAll.slice(offset, offset + limit);
-      const results: any[] = [];
 
-      for (const matchId of pageIds) {
-        try {
-          const detailRes = await nxFetch(`/match-detail?matchid=${encodeURIComponent(matchId)}`);
-          if (!detailRes.ok) continue;
+      
 
-          const match = await detailRes.json();
-          const infos = match?.matchInfo;
-          if (!infos || infos.length < 2) continue;
+const results = await fetchDetailsBatch(ouid, pageIds, matchTypeNameById);
+const order = new Map(pageIds.map((id, i) => [id, i]));
+results.sort((a, b) => (order.get(a.matchId)! - order.get(b.matchId)!));
 
-          const me = infos.find((p: any) => p.ouid === ouid);
-          const enemy = infos.find((p: any) => p.ouid !== ouid);
-          if (!me || !enemy) continue;
 
-          const myGoal = me.shoot?.goalTotalDisplay ?? 0;
-          const enemyGoal = enemy.shoot?.goalTotalDisplay ?? 0;
-
-          const mt = Number(match?.matchType);
-          const mtName = matchTypeNameById.get(mt) ?? `타입 ${mt}`;
-
-          results.push({
-            matchId,
-            result: myGoal > enemyGoal ? "승" : myGoal < enemyGoal ? "패" : "무",
-            score: `${myGoal} : ${enemyGoal}`,
-            opponent: enemy.nickname,
-            matchDate: match.matchDate,
-            matchType: mtName,
-            matchTypeId: mt,
-          });
-        } catch {
-          continue;
-        }
-      }
-
-      results.sort((a, b) => {
-        const ta = a.matchDate ? new Date(a.matchDate).getTime() : 0;
-        const tb = b.matchDate ? new Date(b.matchDate).getTime() : 0;
-        return tb - ta;
-      });
 
       const nextOffset = offset + results.length;
-      const hasMore = nextOffset < matchIdsAll.length;
+const hasMore = nextOffset < matchIdsAll.length;
 
       return NextResponse.json({
         ouid,
@@ -180,74 +195,101 @@ export async function GET(req: Request) {
     // 3) recent match ids (전체 탭이면 4개 타입 합쳐서)
     const typesToFetch = matchtypeFilter !== null ? [matchtypeFilter] : ALL_MATCH_TYPES;
 
-    const matchMap = new Map<string, number>(); // matchId -> matchType
-    for (const mt of typesToFetch) {
-      const res = await nxFetch(
-        `/user/match?ouid=${encodeURIComponent(ouid)}&matchtype=${mt}&offset=0&limit=${MATCH_LIMIT}`
-      );
+    const matchMap = new Map<string, number>(); // matchId -> matchType (중복 제거/총 개수용)
+const idsByType = new Map<number, string[]>(); // ✅ 타입별 최신순 배열
 
-      if (res.status === 503) {
-        return NextResponse.json({ error: "temporary_unavailable" }, { status: 503 });
-      }
-      if (!res.ok) continue;
+for (const mt of typesToFetch) {
+  const res = await nxFetch(
+    `/user/match?ouid=${encodeURIComponent(ouid)}&matchtype=${mt}&offset=0&limit=${MATCH_LIMIT}`
+  );
+  if (res.status === 503) {
+    return NextResponse.json({ error: "temporary_unavailable" }, { status: 503 });
+  }
+  if (!res.ok) continue;
 
-      const ids: string[] = (await res.json().catch(() => [])) ?? [];
-      for (const id of ids) {
-        if (!matchMap.has(id)) matchMap.set(id, mt);
-      }
+  const ids: string[] = (await res.json().catch(() => [])) ?? [];
+  idsByType.set(mt, ids); // ✅ 타입별 배열 저장
+
+  for (const id of ids) {
+    if (!matchMap.has(id)) matchMap.set(id, mt);
+  }
+}
+
+const matchIdsAll = Array.from(matchMap.keys()); // ✅ 이건 이제 "총 길이"만 쓰는 용도
+
+// ✅ 전체탭이면: offset+limit만큼 최신을 맞추기 위해 후보를 더 뽑아 detail로 정렬
+let candidateIds: string[] = [];
+
+if (matchtypeFilter === null) {
+  const PER_TYPE_TAKE = 35; // ✅ 여기만 조절 (30~40 추천)
+  const seen = new Set<string>();
+
+  for (const mt of typesToFetch) {
+    const arr = idsByType.get(mt) ?? [];
+    for (const id of arr.slice(0, PER_TYPE_TAKE)) {
+      if (seen.has(id)) continue;
+      seen.add(id);
+      candidateIds.push(id);
     }
-
-    const matchIdsAll = Array.from(matchMap.keys());
+  }
+} else {
+  candidateIds = (idsByType.get(matchtypeFilter) ?? []).slice(offset, offset + limit);
+}
 
     // ✅ base 캐시 저장 (5분)
     const user = { nickname, highestDivision, highestDivisionName };
+
+    // ✅ [방법 A] 전체탭이면: candidateIds를 더 많이 detail로 가져와 matchDate로 정렬 → 정렬된 matchId들을 matchIdsAll로 캐싱
+if (matchtypeFilter === null) {
+  // 첫 페이지를 "진짜 최신"으로 만들기 위한 seed 개수
+  const SEED = Math.min(candidateIds.length, 120);
+const seedIds = candidateIds.slice(0, SEED);
+
+  // 1) seedIds detail을 병렬로 받아옴
+  const seedDetails = await fetchDetailsBatch(ouid, seedIds, matchTypeNameById);
+
+  // 2) matchDate 최신순 정렬
+  seedDetails.sort((a, b) => {
+    const ta = a.matchDate ? new Date(a.matchDate).getTime() : 0;
+    const tb = b.matchDate ? new Date(b.matchDate).getTime() : 0;
+    return tb - ta;
+  });
+
+  // 3) 정렬된 matchId 리스트 만들기
+  const sortedSeedIds = seedDetails.map((x) => x.matchId);
+const seedSet = new Set(sortedSeedIds);
+const restIds = matchIdsAll.filter((id) => !seedSet.has(id));
+const sortedIdsAll = [...sortedSeedIds, ...restIds];
+  // 4) 이걸 matchIdsAll로 캐싱 (✅ 여기서 최신순 보장)
+  setCache(cacheKey, { ouid, user, matchIdsAll: sortedIdsAll }, 300);
+
+  // 5) 이번 요청(page) 응답은 seedDetails에서 offset/limit만 잘라서 반환
+  const pageResults = seedDetails.slice(offset, offset + limit);
+  const nextOffset = offset + pageResults.length;
+  const hasMore = nextOffset < sortedIdsAll.length;
+
+  return NextResponse.json({
+    ouid,
+    user,
+    matches: pageResults,
+    nextOffset,
+    hasMore,
+  });
+}
+
     setCache(cacheKey, { ouid, user, matchIdsAll }, 300);
 
     // 4) 첫 페이지 detail만
-    const pageIds = matchIdsAll.slice(offset, offset + limit);
-    const results: any[] = [];
+    const pageIds = candidateIds;
 
-    for (const matchId of pageIds) {
-      try {
-        const detailRes = await nxFetch(`/match-detail?matchid=${encodeURIComponent(matchId)}`);
-        if (!detailRes.ok) continue;
+    const results = await fetchDetailsBatch(ouid, pageIds, matchTypeNameById);
+    const order = new Map(pageIds.map((id, i) => [id, i]));
+    results.sort((a, b) => (order.get(a.matchId)! - order.get(b.matchId)!));
 
-        const match = await detailRes.json();
-        const infos = match?.matchInfo;
-        if (!infos || infos.length < 2) continue;
 
-        const me = infos.find((p: any) => p.ouid === ouid);
-        const enemy = infos.find((p: any) => p.ouid !== ouid);
-        if (!me || !enemy) continue;
-
-        const myGoal = me.shoot?.goalTotalDisplay ?? 0;
-        const enemyGoal = enemy.shoot?.goalTotalDisplay ?? 0;
-
-        const mt = Number(match?.matchType);
-        const mtName = matchTypeNameById.get(mt) ?? `타입 ${mt}`;
-
-        results.push({
-          matchId,
-          result: myGoal > enemyGoal ? "승" : myGoal < enemyGoal ? "패" : "무",
-          score: `${myGoal} : ${enemyGoal}`,
-          opponent: enemy.nickname,
-          matchDate: match.matchDate,
-          matchType: mtName,
-          matchTypeId: mt,
-        });
-      } catch {
-        continue;
-      }
-    }
-
-    results.sort((a, b) => {
-      const ta = a.matchDate ? new Date(a.matchDate).getTime() : 0;
-      const tb = b.matchDate ? new Date(b.matchDate).getTime() : 0;
-      return tb - ta;
-    });
 
     const nextOffset = offset + results.length;
-    const hasMore = nextOffset < matchIdsAll.length;
+const hasMore = nextOffset < matchIdsAll.length;
 
     return NextResponse.json({
       ouid,
