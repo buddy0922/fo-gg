@@ -21,9 +21,10 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "FO.GG - FC온라인 전적 검색",
+  title: "피파 전적 검색은 FCON.KR",
   description: "FC온라인 전적, 경기 분석, 메타 정보",
 };
+
 
 export default function RootLayout({
   children,
