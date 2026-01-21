@@ -31,7 +31,7 @@ export default function PrivacyPage() {
 
       <section className="space-y-2">
         <h2 className="text-xl font-bold">3. 개인정보의 보관 및 파기</h2>
-        <p className="text-gray-300">
+        <p className="text-zinc-700 dark:text-zinc-300">
           이용자의 개인정보는 서비스 이용 기간 동안 보관되며,
           탈퇴 시 지체 없이 파기됩니다.
         </p>
@@ -39,22 +39,22 @@ export default function PrivacyPage() {
 
       <section className="space-y-2">
         <h2 className="text-xl font-bold">4. 제3자 제공</h2>
-        <p className="text-gray-300">
+        <p className="text-zinc-700 dark:text-zinc-300">
           본 서비스는 이용자의 개인정보를 제3자에게 제공하지 않습니다.
         </p>
       </section>
 
       <section className="space-y-2">
         <h2 className="text-xl font-bold">5. 문의</h2>
-        <p className="text-gray-300">
+        <p className="text-zinc-700 dark:text-zinc-300">
           개인정보 관련 문의는 아래 이메일로 연락해 주세요.
         </p>
-        <p className="text-gray-300 font-semibold">
+        <p className="text-zinc-700 dark:text-zinc-300 font-semibold">
           📧 foggservice12@gmail.com
         </p>
       </section>
 
-      <p className="text-sm text-gray-400">
+      <p className="text-sm text-zinc-700 dark:text-zinc-300">
         시행일: 2026년 1월 1일
       </p>
     </div>
