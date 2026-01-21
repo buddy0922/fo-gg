@@ -8,29 +8,7 @@ import { useLoading } from "@/app/providers/LoadingProvider";
 import RecentRingSummary from "@/app/components/RecentRingSummary";
 
 
-type ApiResult =
-  | {
-      ouid: string;
-      user: {
-        nickname: string;
-        highestDivision?: number;
-        highestDivisionName?: string;
-      };
-      matches: Array<{
-        matchId: string;
-        result: "승" | "패" | "무";
-        score: string;
-        opponent: string;
-        matchDate?: string;
-        matchType?: string;
-        matchTypeId?: number;
-      }>;
-    }
-  | {
-      error: string;
-      status?: number;
-      body?: string;
-    };
+
 
 function resultBarColor(result: "승" | "패" | "무") {
   switch (result) {
@@ -109,9 +87,6 @@ const type = useMemo(() => {
   return Number.isFinite(n) ? n : null;
 }, [sp]);
 
-  const [data, setData] = useState<ApiResult | null>(null);
-const MAX_SHOW = 100;
-const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
 useEffect(() => {
   setUser(null);
@@ -267,15 +242,15 @@ async function loadMore() {
             닉네임: {nickname}
           </p>
 
-          {"status" in (data ?? {}) && (
-            <p className="text-gray-400 mt-1">status: {(data as any)?.status}</p>
-          )}
+          {error?.status !== undefined && (
+  <p className="text-gray-400 mt-1">status: {error.status}</p>
+)}
 
-          {"body" in (data ?? {}) && (data as any)?.body && (
-            <pre className="text-xs whitespace-pre-wrap text-gray-400 mt-2">
-              {(data as any).body}
-            </pre>
-          )}
+{error?.body && (
+  <pre className="text-xs whitespace-pre-wrap text-gray-400 mt-2">
+    {error.body}
+  </pre>
+)}
 
           <Link
             href={`/search?nickname=${encodeURIComponent(nickname)}`}
@@ -383,9 +358,7 @@ async function loadMore() {
 </div>
 
       <div className="space-y-6">
-        {matches
-  .slice(0, Math.min(visibleCount, MAX_SHOW))
-  .map((m) => (
+        {matches.map((m) => (
   <Link
     key={m.matchId}
     href={`/match/${m.matchId}/${encodeURIComponent(nickname)}`}
