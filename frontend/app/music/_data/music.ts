@@ -1,58 +1,50 @@
 export type CategoryKey = "worldcup" | "madmovie" | "chant" | "fifa";
 
 export type Song = {
-  id: string;        // "wc-1" 이런 식
+  id: string;      // "wc-1"
   title: string;
-  videoId: string;   // 유튜브 videoId
+  videoId: string; // YouTube videoId
 };
 
 export type Category = {
-  key: CategoryKey;
-  label: string;     // 탭에 보이는 이름
+  key: CategoryKey; // ✅ 카테고리 식별자는 key
+  label: string;    // 탭 이름
   songs: Song[];
 };
 
-
 export const CATEGORIES: Category[] = [
-      {
+  {
     key: "worldcup",
     label: "월드컵",
-    songs: [
-      { id: "wc-1", title: "Waka Waka", videoId: "pRpeEdMmmQ0" },
-    ],
+    songs: [{ id: "wc-1", title: "Waka Waka", videoId: "pRpeEdMmmQ0" }],
   },
-      {
+  {
     key: "madmovie",
     label: "매드무비",
-    songs: [
-      { id: "mm-1", title: "…", videoId: "8gHKEhbQKHo" },
-    ],
+    songs: [{ id: "mm-1", title: "…", videoId: "8gHKEhbQKHo" }],
   },
-
   {
     key: "chant",
     label: "응원가",
-    songs: [
-      { id: "mm-1", title: "…", videoId: "8gHKEhbQKHo" },
-    ],
+    songs: [{ id: "ch-1", title: "…", videoId: "8gHKEhbQKHo" }],
   },
   {
     key: "fifa",
     label: "FC온라인/FIFA",
-    songs: [
-      { id: "mm-1", title: "…", videoId: "8gHKEhbQKHo" },
-    ],
+    songs: [{ id: "fi-1", title: "…", videoId: "8gHKEhbQKHo" }],
   },
 ];
 
-export function getCategory(id: string) {
-  return CATEGORIES.find((c) => c.id === id);
+// ✅ (기존 getCategory는 c.id를 찾고 있어서 오류) → key로 찾기
+export function getCategory(key: CategoryKey) {
+  return CATEGORIES.find((c) => c.key === key);
 }
 
-export function getPlaylist(categoryId: string, playlistId: string) {
-  const cat = getCategory(categoryId);
-  const pl = cat?.playlists.find((p) => p.id === playlistId);
-  return { cat, pl };
+// ✅ playlists 구조를 안 쓰면 이 함수는 삭제하거나 "song 찾기"로 대체
+export function getSong(categoryKey: CategoryKey, songId: string) {
+  const cat = getCategory(categoryKey);
+  const song = cat?.songs.find((s) => s.id === songId);
+  return { cat, song };
 }
 
 export function ytThumb(videoId: string) {

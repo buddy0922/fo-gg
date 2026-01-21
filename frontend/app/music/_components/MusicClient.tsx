@@ -1,11 +1,14 @@
 // app/music/_components/MusicClient.tsx
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
+import { useSession, signIn } from "next-auth/react";
+import { usePlayerStore } from "@/app/music/_store/playerStore";
+import GlobalYouTubePlayer from "@/app/components/GlobalYouTubePlayer";
 
 type CategoryKey = "tournament" | "sports" | "chants" | "game";
-type PlaylistKey = CategoryKey | "all";
+type PlaylistKey = "all" | "liked" | CategoryKey;
 
 type Song = {
   id: string;
@@ -25,7 +28,7 @@ type Category = {
 type Playlist =
   | Category
   | {
-      key: "all";
+      key: "all" | "liked";
       label: string;
       emoji: string;
       songs: Song[];
@@ -45,33 +48,33 @@ const CATEGORIES: Category[] = [
   label: "게임 OST",
   emoji: "🎮",
   songs: [
-    { id: "gm-1", title: "Time Bomb", artist: "FIFA Online 3", videoId: "8gHKEhbQKHo" },
-    { id: "gm-2", title: "It's Only Us", artist: "FIFA 2000", videoId: "y6cH6zKp9eA" },
-    { id: "gm-3", title: "The Other Line", artist: "FIFA Online 3", videoId: "vW9t7wX9K7E" },
-    { id: "gm-4", title: "THE PHOENIX", artist: "FIFA Online 3", videoId: "fXkqQzQ9XwE" },
-    { id: "gm-5", title: "ICON BGM", artist: "FIFA Online 4", videoId: "3p6m6kzF8Fs" },
-    { id: "gm-6", title: "Make Way", artist: "FIFA Online 4", videoId: "mGJ3X0V7p9k" },
-    { id: "gm-7", title: "집", artist: "FIFA Online 4", videoId: "0pMZKXz8m1Q" },
-    { id: "gm-8", title: "Put You In Your Place", artist: "FIFA Online 3", videoId: "2Z7Wc6KxH8E" },
-    { id: "gm-9", title: "The Great Escape", artist: "FIFA Online 3", videoId: "9Xk8Vf7p2wE" },
-    { id: "gm-10", title: "Love Me Again", artist: "FIFA Online 3", videoId: "CfihYWRWRTQ" },
+    { id: "gm-1", title: "Time Bomb", artist: "FIFA Online 3", videoId: "dEnA5Du7d9M" },
+    { id: "gm-2", title: "It's Only Us", artist: "FIFA 2000", videoId: "ecrph82o6FU" },
+    { id: "gm-3", title: "The Other Line", artist: "FIFA Online 3", videoId: "WFsgEZv5rKU" },
+    { id: "gm-4", title: "THE PHOENIX", artist: "FIFA Online 3", videoId: "kfrdXhTiMJ4" },
+    { id: "gm-5", title: "ICON BGM", artist: "FIFA Online 4", videoId: "df7ikTB3HGc" },
+    { id: "gm-6", title: "Make Way", artist: "FIFA Online 4", videoId: "ri6RZVttf6A" },
+    { id: "gm-7", title: "집", artist: "FIFA Online 4", videoId: "RVPdKE-EsNA" },
+    { id: "gm-8", title: "Put You In Your Place", artist: "FIFA Online 3", videoId: "Pc_Fok6fTbA" },
+    { id: "gm-9", title: "The Great Escape", artist: "FIFA Online 3", videoId: "Wg9LZMY9czk" },
+    { id: "gm-10", title: "Love Me Again", artist: "FIFA Online 3", videoId: "z8VJcM1shaw" },
 
-    { id: "gm-11", title: "ON OUR WAY", artist: "FIFA 14", videoId: "KX5R7Q3p4kA" },
-    { id: "gm-12", title: "Fly", artist: "Epik High (FIFA 07)", videoId: "b0vZ2F8Nq4Q" },
+    { id: "gm-11", title: "ON OUR WAY", artist: "FIFA 14", videoId: "CTue7yhHycQ" },
+    { id: "gm-12", title: "Fly", artist: "Epik High (FIFA 07)", videoId: "_MbZXvMwtGQ" },
     { id: "gm-13", title: "Counting Stars", artist: "FIFA 14", videoId: "hT_nvWreIhg" },
-    { id: "gm-14", title: "Dreaming", artist: "FIFA 14", videoId: "zZxJ7n5q6Gg" },
-    { id: "gm-15", title: "Lived A Lie", artist: "FIFA 14", videoId: "Yy7Xk1YxF6k" },
+    { id: "gm-14", title: "Dreaming", artist: "FIFA 14", videoId: "j0m2KOEKGyM" },
+    { id: "gm-15", title: "Lived A Lie", artist: "FIFA 14", videoId: "r3oi1NVnseA" },
 
-    { id: "gm-16", title: "Heat Waves", artist: "FIFA 21", videoId: "mRD0-GxqHVo" },
-    { id: "gm-17", title: "Ticket To Ride", artist: "FIFA 21", videoId: "4NRXx6U8ABQ" },
-    { id: "gm-18", title: "Genius", artist: "FIFA 19", videoId: "f_s6i5D2L2c" },
-    { id: "gm-19", title: "Found What I've Been Looking For", artist: "FIFA 18", videoId: "yKNxeF4KMsY" },
+    { id: "gm-16", title: "Heat Waves", artist: "FIFA 21", videoId: "P4ei7mIbZrE" },
+    { id: "gm-17", title: "Ticket To Ride", artist: "FIFA 21", videoId: "N3wZEFO5uMQ" },
+    { id: "gm-18", title: "Genius", artist: "FIFA 19", videoId: "_Di-IxsmRXg" },
+    { id: "gm-19", title: "Found What I've Been Looking For", artist: "FIFA 18", videoId: "E80hONQ-8a4" },
 
-    { id: "gm-20", title: "Something Just Like This", artist: "Winning Eleven", videoId: "FM7MFYoylVs" },
-    { id: "gm-21", title: "By Your Side", artist: "Winning Eleven", videoId: "3Kxf2dHlDpQ" },
-    { id: "gm-22", title: "Song 2", artist: "FIFA 98", videoId: "SSbBvKaM6sk" },
-    { id: "gm-23", title: "Tubthumping", artist: "World Cup 98 / FIFA", videoId: "2H5uWRjFsGc" },
-    { id: "gm-24", title: "Jerk It Out", artist: "FIFA 2004", videoId: "NIGMUAMevH0" },
+    { id: "gm-20", title: "Something Just Like This", artist: "Winning Eleven", videoId: "ktGj2irEN6U" },
+    { id: "gm-21", title: "By Your Side", artist: "Winning Eleven", videoId: "0nZSuXoBb1Y" },
+    { id: "gm-22", title: "Song 2", artist: "FIFA 98", videoId: "8w0X1bSrUHs" },
+    { id: "gm-23", title: "Tubthumping", artist: "World Cup 98 / FIFA", videoId: "gaiollV9jz0" },
+    { id: "gm-24", title: "Jerk It Out", artist: "FIFA 2004", videoId: "N7mDKTW-jMs" },
   ],
 },
   {
@@ -79,26 +82,26 @@ const CATEGORIES: Category[] = [
     label: "국제대회",
     emoji: "🏆",
     songs: [
-  { id: "tour-1", title: "Champion", artist: "2002 Korea-Japan WC", videoId: "r0G9pYF4J7M" },
-  { id: "tour-2", title: "We Will Rock You", artist: "Queen", videoId: "iRW2j0rJ6LE" },
-  { id: "tour-3", title: "Dreamers", artist: "Jung Kook", videoId: "IwzkfMmNMpM" },
-  { id: "tour-4", title: "Feel The Magic In The Air", artist: "Magic System", videoId: "BAkqJT_sMKQ" },
-  { id: "tour-5", title: "C'est La Vie", artist: "Khaled", videoId: "5S4Y2z0AqI4" },
-  { id: "tour-6", title: "The Cup Of Life", artist: "Ricky Martin", videoId: "8BkYKwHLXiU" },
-  { id: "tour-7", title: "Dreamers", artist: "FIFA WC 2022", videoId: "IwzkfMmNMpM" },
-  { id: "tour-8", title: "We Are The Champions", artist: "Queen", videoId: "04854XqcfCY" },
-  { id: "tour-9", title: "Ole Ole Ole", artist: "World Cup Song", videoId: "1b3J6nG2N8M" },
-  { id: "tour-10", title: "The Cup Of Life", artist: "1998 France WC", videoId: "8BkYKwHLXiU" },
-  { id: "tour-11", title: "Waka Waka", artist: "Shakira", videoId: "pRpeEdMmmQ0" },
+  { id: "tour-1", title: "Champion", artist: "2002 Korea-Japan WC", videoId: "3s6GD0Eo5dA" },
+  { id: "tour-2", title: "We Will Rock You", artist: "Queen", videoId: "tn7k-abwfbM" },
+  { id: "tour-3", title: "Dreamers", artist: "Jung Kook", videoId: "stIFV5kXOXE" },
+  { id: "tour-4", title: "Feel The Magic In The Air", artist: "Magic System", videoId: "jraYCQ0IRws" },
+  { id: "tour-5", title: "C'est La Vie", artist: "Khaled", videoId: "7L9qE9WMrJY" },
+  { id: "tour-6", title: "The Cup Of Life", artist: "Ricky Martin", videoId: "IzrI7LrTd2c" },
+  { id: "tour-7", title: "Dreamers", artist: "FIFA WC 2022", videoId: "stIFV5kXOXE" },
+  { id: "tour-8", title: "We Are The Champions", artist: "Queen", videoId: "OsmZY6u7m3k" },
+  { id: "tour-9", title: "Ole Ole Ole", artist: "World Cup Song", videoId: "TGtWWb9emYI" },
+  { id: "tour-10", title: "The Cup Of Life", artist: "1998 France WC", videoId: "IzrI7LrTd2c" },
+  { id: "tour-11", title: "Waka Waka", artist: "Shakira", videoId: "h6nnt6PRHk4" },
   { id: "tour-12", title: "Wavin' Flag", artist: "K'naan", videoId: "WTJSt4wP2ME" },
-  { id: "tour-13", title: "Live It Up", artist: "Nicky Jam", videoId: "YQHsXMglC9A" },
-  { id: "tour-14", title: "Hayya Hayya", artist: "FIFA WC 2022", videoId: "vyDjFVZgJoo" },
-  { id: "tour-15", title: "Waka Waka (This Time for Africa)", artist: "Shakira", videoId: "pRpeEdMmmQ0" },
-  { id: "tour-16", title: "Colors", artist: "Jason Derulo", videoId: "B_0pH8pIh5E" },
+  { id: "tour-13", title: "Live It Up", artist: "Nicky Jam", videoId: "J5eQvuQIt3s" },
+  { id: "tour-14", title: "Hayya Hayya", artist: "FIFA WC 2022", videoId: "sQJaztbrErc" },
+  { id: "tour-15", title: "Waka Waka (This Time for Africa)", artist: "Shakira", videoId: "h6nnt6PRHk4" },
+  { id: "tour-16", title: "Colors", artist: "Jason Derulo", videoId: "QL0pSYO9yk8" },
   { id: "tour-17", title: "Wavin' Flag (Celebration Mix)", artist: "K'naan", videoId: "WTJSt4wP2ME" },
-  { id: "tour-18", title: "The World Is Ours", artist: "Aloe Blacc", videoId: "8gHKEhbQKHo" },
-  { id: "tour-19", title: "Gloryland", artist: "World Cup 1994", videoId: "0yXr7n0tS4I" },
-  { id: "tour-20", title: "UEFA Champions League Theme", artist: "Tony Britten", videoId: "zwV3h1vqU0A" },
+  { id: "tour-18", title: "The World Is Ours", artist: "Aloe Blacc", videoId: "240THRFkCd4" },
+  { id: "tour-19", title: "Gloryland", artist: "World Cup 1994", videoId: "DxSKK5KQLoc" },
+  { id: "tour-20", title: "UEFA Champions League Theme", artist: "Tony Britten", videoId: "8gHKEhbQKHo" },
 ],
   },
 
@@ -114,61 +117,61 @@ const CATEGORIES: Category[] = [
       id: "mm-1",
       title: "The Nights",
       artist: "Avicii",
-      videoId: "UtF6Jej8yb4",
+      videoId: "43qQV5MUFgI",
     },
     {
       id: "mm-2",
       title: "On Top Of The World",
       artist: "Imagine Dragons",
-      videoId: "w5tWYmIOWGk",
+      videoId: "cxmMD5OvYRQ",
     },
     {
       id: "mm-3",
       title: "Counting Stars",
       artist: "OneRepublic",
-      videoId: "hT_nvWreIhg",
+      videoId: "9w33PUyfJHE",
     },
     {
       id: "mm-4",
-      title: "Viva La Vida (Live)",
+      title: "Viva La Vida",
       artist: "Coldplay",
-      videoId: "dvgZkm1xWPE",
+      videoId: "3MXsM8mFSFM",
     },
     {
       id: "mm-5",
       title: "Shut Up And Dance",
       artist: "WALK THE MOON",
-      videoId: "6JCLY0Rlx6Q",
+      videoId: "fpSLPo-Kfwk",
     },
     {
       id: "mm-6",
       title: "Something Just Like This",
       artist: "The Chainsmokers & Coldplay",
-      videoId: "FM7MFYoylVs",
+      videoId: "9v_X-_nr9LY",
     },
     {
       id: "mm-7",
       title: "Heat Waves",
       artist: "Glass Animals",
-      videoId: "mRD0-GxqHVo",
+      videoId: "C15X5N1Tpko",
     },
     {
       id: "mm-8",
       title: "The Last Of The Real Ones",
       artist: "Fall Out Boy",
-      videoId: "7K3z6M8E3wY",
+      videoId: "APW_K48Vrtk",
     },
     {
       id: "mm-9",
       title: "Seven Nation Army",
       artist: "The White Stripes",
-      videoId: "0J2QdDbelmY",
+      videoId: "RDuzszjrdcc",
     },
     {
       id: "mm-10",
       title: "We Will Rock You",
       artist: "Queen",
-      videoId: "04854XqcfCY",
+      videoId: "-tJYN-eG1zk",
     },
     {
       id: "mm-11",
@@ -180,7 +183,7 @@ const CATEGORIES: Category[] = [
       id: "mm-12",
       title: "Fire",
       artist: "Kasabian",
-      videoId: "agVpq_XXRmU",
+      videoId: "MQLPbd-RoSI",
     },
   ],
   },
@@ -290,37 +293,119 @@ const ALL: Playlist = {
   ),
 };
 
-const PLAYLISTS: Playlist[] = [ALL, ...CATEGORIES];
+const LIKED = (likeSet: Set<string>): Playlist => ({
+  key: "liked",
+  label: "좋아요",
+  emoji: "❤️",
+  songs: ALL.songs.filter((s) => likeSet.has(s.videoId)),
+});
+
 
 export default function MusicClient() {
+  const { data: session } = useSession();
+
+  const [query, setQuery] = useState("");
   const [activeCatKey, setActiveCatKey] = useState<PlaylistKey>("tournament");
 
-  // ✅ 이제 PLAYLISTS에서 찾기 (전체 포함)
-  const activeCategory = useMemo(() => {
-    return PLAYLISTS.find((c) => c.key === activeCatKey) ?? PLAYLISTS[0];
-  }, [activeCatKey]);
+  // ✅ likes 전역
+  const hydrateLikes = usePlayerStore((s) => s.hydrateLikes);
+  const likeSet = usePlayerStore((s) => s.likeSet);
+  const likeCounts = usePlayerStore((s) => s.likeCounts);
+  const toggleLikeStore = usePlayerStore((s) => s.toggleLike);
 
-  // ✅ activeCategory가 바뀔 때도 첫 곡 안정적으로 잡기
-  const [activeVideoId, setActiveVideoId] = useState<string>(
-    activeCategory.songs[0]?.videoId ?? ""
-  );
+  // ✅ player 전역
+  const activeVideoId = usePlayerStore((s) => s.activeVideoId);
+  const isPlaying = usePlayerStore((s) => s.isPlaying);
+  const autoPlay = usePlayerStore((s) => s.autoPlay);
+  const randomMode = usePlayerStore((s) => s.randomMode);
+
+  const setAutoPlay = usePlayerStore((s) => s.setAutoPlay);
+  const setRandomMode = usePlayerStore((s) => s.setRandomMode);
+
+  const setQueue = usePlayerStore((s) => s.setQueue);
+  const next = usePlayerStore((s) => s.next);
+  const prev = usePlayerStore((s) => s.prev);
+  const requestTogglePlayPause = usePlayerStore((s) => s.requestTogglePlayPause);
+
+  // ✅ 좋아요 hydrate 1번만 실행 가드
+const hydratedRef = useRef(false);
+
+useEffect(() => {
+  if (hydratedRef.current) return;
+  hydratedRef.current = true;
+  hydrateLikes();
+}, [hydrateLikes]);
+
+  // ✅ playlists (likeSet 선언 이후!)
+  const playlists = useMemo<Playlist[]>(() => {
+    return [ALL, LIKED(likeSet), ...CATEGORIES];
+  }, [likeSet]);
+
+  const activeCategory = useMemo(() => {
+    return playlists.find((c) => c.key === activeCatKey) ?? playlists[0];
+  }, [activeCatKey, playlists]);
+
+
+
+
 
   const onPickCategory = (key: PlaylistKey) => {
-    setActiveCatKey(key);
-    const next = PLAYLISTS.find((c) => c.key === key);
-    if (next?.songs?.[0]?.videoId) setActiveVideoId(next.songs[0].videoId);
-  };
+  setActiveCatKey(key);
+
+  const picked = playlists.find((c) => c.key === key);
+  const songs = picked?.songs ?? [];
+
+  const queue = songs.map((s) => ({
+    videoId: s.videoId,
+    title: s.title,
+    artist: s.artist,
+  }));
+
+  // 첫 곡으로 큐 세팅 (재생도 이어짐)
+  setQueue(queue, queue[0]?.videoId);
+};
+
+  const filteredSongs = useMemo(() => {
+  const q = query.trim().toLowerCase();
+  if (!q) return activeCategory.songs;
+
+  return activeCategory.songs.filter((s) =>
+    `${s.title} ${s.artist ?? ""}`.toLowerCase().includes(q)
+  );
+}, [activeCategory.songs, query]);
 
   // ✅ 현재곡 찾기도 전체 포함해서 찾기
   const currentSong = useMemo(() => {
     return ALL.songs.find((s) => s.videoId === activeVideoId) ?? null;
   }, [activeVideoId]);
 
+  const topLiked = useMemo(() => {
+  return ALL.songs
+    .map((s) => ({ ...s, count: likeCounts[s.videoId] ?? 0 }))
+    .filter((s) => s.count > 0)
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 10);
+}, [likeCounts]);
+
+const activeQueue = useMemo(
+  () =>
+    activeCategory.songs.map((s) => ({
+      videoId: s.videoId,
+      title: s.title,
+      artist: s.artist,
+    })),
+  [activeCategory.songs]
+);
+
+const onPickSong = (song: Song) => {
+  setQueue(activeQueue, song.videoId);
+};
+
   return (
     <div className="mx-auto w-full max-w-6xl px-4 pt-24 pb-14">
       {/* 카테고리 탭 */}
       <div className="mb-6 flex flex-wrap gap-2">
-        {PLAYLISTS.map((cat) => {
+        {playlists.map((cat) => {
           const active = cat.key === activeCatKey;
           return (
             <button
@@ -351,116 +436,131 @@ export default function MusicClient() {
             <span className="text-xs text-[var(--text-sub)]">{activeCategory.songs.length}곡</span>
           </div>
 
+            <input
+    value={query}
+    onChange={(e) => setQuery(e.target.value)}
+    placeholder="노래 / 아티스트 검색"
+    className="
+      mb-3 w-full rounded-lg border border-[var(--border)]
+      bg-[var(--surface)] px-3 py-2 text-sm
+      text-[var(--text-main)]
+      placeholder:text-[var(--text-sub)]
+      focus:outline-none focus:border-[#5CC4FF]
+    "
+  />
+
+  {topLiked.length > 0 && (
+  <div className="mb-4">
+    <h3 className="mb-2 text-sm font-extrabold text-[var(--text-main)]">
+      🔥 HOT
+    </h3>
+    <div className="flex gap-2 overflow-x-auto pb-1">
+      {topLiked.map((s) => (
+        <button
+          key={s.videoId}
+          onClick={() => setQueue(activeQueue, s.videoId)}
+          type="button"
+          className="shrink-0 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text-main)] hover:border-[#5CC4FF] transition"
+        >
+          ❤️ {s.count} · {s.title}
+        </button>
+      ))}
+    </div>
+  </div>
+)}
+
+  <div className="grid grid-cols-1 gap-3"></div>
+
           <div className="grid grid-cols-1 gap-3">
-            {activeCategory.songs.map((song) => {
-              const selected = song.videoId === activeVideoId;
-              return (
-                <button
-                  key={song.id}
-                  onClick={() => setActiveVideoId(song.videoId)}
-                  className={[
-                    "group flex w-full items-center gap-3 rounded-xl border p-3 text-left transition",
-                    selected
-                      ? "border-white/25 bg-white/10"
-                      : "border-[var(--border)] bg-transparent hover:bg-white/5",
-                  ].join(" ")}
-                >
-                  <div className="relative h-14 w-20 overflow-hidden rounded-lg">
-                    <Image
-                      src={ytThumb(song.videoId)}
-                      alt={song.title}
-                      fill
-                      className="object-cover"
-                      sizes="80px"
-                      priority={false}
-                    />
-                    <div className="absolute inset-0 bg-black/10 group-hover:bg-black/0 transition" />
-                  </div>
-
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-sm md:text-base font-bold text-[var(--text-main)]">
-                      {song.title}
-                    </div>
-                    <div className="mt-0.5 truncate text-xs md:text-sm text-[var(--text-sub)]">
-                      {song.artist ?? "YouTube"}
-                      {song.note ? ` · ${song.note}` : ""}
-                    </div>
-                  </div>
-
-                  <div
-                    className={[
-                      "shrink-0 rounded-full px-3 py-1 text-xs font-bold",
-                      selected ? "bg-[#34E27A]/20 text-[#34E27A]" : "bg-white/10 text-[var(--text-sub)]",
-                    ].join(" ")}
-                  >
-                    {selected ? "재생중" : "재생"}
-                  </div>
-                </button>
-              );
-            })}
+  {activeCategory.songs.length === 0 ? (
+    <div className="rounded-xl border border-[var(--border)] bg-white/5 p-4 text-sm text-[var(--text-sub)]">
+      아직 좋아요한 곡이 없어요. 🤍 버튼을 눌러 저장해보세요.
+    </div>
+  ) : (
+    filteredSongs.map((song) => {
+      const selected = song.videoId === activeVideoId;
+      return (
+        <div
+          key={song.id}
+          onClick={() => onPickSong(song)}
+          role="button"
+          tabIndex={0}
+          className={[
+            "group flex w-full cursor-pointer items-center gap-3 rounded-xl border p-3 text-left transition",
+            selected
+              ? "border-white/25 bg-white/10"
+              : "border-[var(--border)] bg-transparent hover:bg-white/5",
+          ].join(" ")}
+        >
+          {/* 썸네일 */}
+          <div className="relative h-14 w-20 overflow-hidden rounded-lg">
+            <Image
+              src={ytThumb(song.videoId)}
+              alt={song.title}
+              fill
+              className="object-cover"
+              sizes="80px"
+            />
           </div>
+
+          {/* 제목/아티스트 */}
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-sm md:text-base font-bold text-[var(--text-main)]">
+              {song.title}
+            </div>
+            <div className="mt-0.5 truncate text-xs md:text-sm text-[var(--text-sub)]">
+              {song.artist ?? "YouTube"}
+            </div>
+          </div>
+
+          {/* 재생 상태 */}
+          <div
+            className={[
+              "shrink-0 rounded-full px-3 py-1 text-xs font-bold",
+              selected
+                ? "bg-[#34E27A]/20 text-[#34E27A]"
+                : "bg-white/10 text-[var(--text-sub)]",
+            ].join(" ")}
+          >
+            {selected ? "재생중" : "재생"}
+          </div>
+
+          {/* 👍 좋아요 */}
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={async (e) => {
+  e.stopPropagation();
+  if (!session) {
+    await signIn("google");
+    return;
+  }
+  await toggleLikeStore(song.videoId);
+}}
+            className={[
+              "ml-2 shrink-0 rounded-full border px-2.5 py-1 text-xs font-bold transition cursor-pointer select-none flex items-center gap-1",
+              likeSet.has(song.videoId)
+                ? "border-[#5CC4FF]/40 bg-[#5CC4FF]/15 text-[#5CC4FF]"
+                : "border-[var(--border)] bg-white/5 text-[var(--text-sub)] hover:text-[var(--text-main)]",
+            ].join(" ")}
+          >
+            <span>{likeSet.has(song.videoId) ? "❤️" : "🤍"}</span>
+            <span className="tabular-nums">{likeCounts[song.videoId] ?? 0}</span>
+          </div>
+        </div>
+      );
+    })
+  )}
+</div>
         </section>
 
         {/* 유튜브 플레이어 */}
-        <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 md:p-5">
-          <div className="mb-3 flex items-start justify-between gap-3">
-  <div>
-    <h2 className="text-base md:text-lg font-extrabold text-[var(--text-main)]">
-      지금 재생중인 노래
-    </h2>
-    <p className="mt-1 text-xs md:text-sm text-[var(--text-sub)]">
-      {currentSong
-        ? `${currentSong.title}${currentSong.artist ? ` · ${currentSong.artist}` : ""}`
-        : "곡을 선택해줘"}
-    </p>
-  </div>
 
-  {/* 🔗 유튜브 새 탭 버튼 */}
-  {activeVideoId && (
-    <a
-      href={ytWatch(activeVideoId)}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="
-        shrink-0 rounded-lg px-3 py-1.5 text-xs font-bold
-        border border-[var(--border)]
-        bg-[var(--surface)]
-        text-[var(--text-main)]
-        hover:text-[#34E27A]
-        hover:border-[#34E27A]
-        transition
-      "
-      title="유튜브에서 열기"
-    >
-      YouTube ↗
-    </a>
-  )}
+
+
+
 </div>
-          
 
-          <div className="relative aspect-video overflow-hidden rounded-xl border border-[var(--border)] bg-black/30">
-            {activeVideoId ? (
-              <iframe
-                key={activeVideoId}
-                className="absolute inset-0 h-full w-full"
-                src={ytEmbed(activeVideoId)}
-                title="YouTube player"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                allowFullScreen
-              />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center text-sm text-[var(--text-sub)]">
-                곡을 선택해줘
-              </div>
-            )}
-          </div>
-
-          {/* 작은 안내 */}
-          <div className="mt-3 text-xs text-[var(--text-sub)]">
-            * 영상을 우클릭 후 '연속재생'을 누르면 연속으로 들을 수 있습니다.
-          </div>
-        </section>
-      </div>
     </div>
   );
 }

@@ -24,7 +24,7 @@ export default function Header() {
           className="md:text-2xl font-extrabold tracking-[0.03em] fc-logo-font"
           style={{ color: "var(--text-main)" }}
         >
-          FO.GG
+          FCON.kr
         </Link>
 
         {/* 네비게이션 */}

@@ -12,7 +12,7 @@ export default function Home() {
         {/* 🔥 FO.GG 로고 */}
         <div>
           <h1 className="text-4xl text-shadow-logo md:text-5xl font-extrabold tracking-[0.03em] fc-logo-font">
-  FO.GG
+  FCON.kr
 </h1>
         </div>
 

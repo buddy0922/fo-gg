@@ -8,7 +8,7 @@ import ClientLoading from "@/app/ClientLoading";
 import  LoadingProvider  from "@/app/providers/LoadingProvider";
 import ThemeProvider from "./providers/ThemeProvider";
 import AuthProvider from "./providers/AuthProvider";
-
+import GlobalYouTubePlayer from "@/app/components/GlobalYouTubePlayer";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -46,9 +46,10 @@ export default function RootLayout({
             </Suspense>
 
             {/* 메인 컨텐츠 */}
-            <main className="pt-16 min-h-screen">
-              {children}
-            </main>
+            <main className="relative pt-16 min-h-screen">
+  {children}
+  <GlobalYouTubePlayer />
+</main>
           </LoadingProvider>
         </ThemeProvider>
         </AuthProvider>
