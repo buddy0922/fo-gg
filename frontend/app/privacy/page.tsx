@@ -93,7 +93,7 @@ export default function PrivacyPage() {
 
       <p className="text-sm text-zinc-500 dark:text-zinc-400">
         시행일: 2026년 1월 5일
-        // redeploy trigger
+        // redeploy triggers
       </p>
     </div>
   );
