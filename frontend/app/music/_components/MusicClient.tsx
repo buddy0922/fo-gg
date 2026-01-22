@@ -387,6 +387,10 @@ useEffect(() => {
     .slice(0, 10);
 }, [likeCounts]);
 
+const hotSet = useMemo(() => {
+  return new Set(topLiked.map((s) => s.videoId));
+}, [topLiked]);
+
 const activeQueue = useMemo(
   () =>
     activeCategory.songs.map((s) => ({
@@ -479,6 +483,8 @@ const onPickSong = (song: Song) => {
   ) : (
     filteredSongs.map((song) => {
       const selected = song.videoId === activeVideoId;
+      const count = likeCounts[song.videoId] ?? 0;
+const hot = hotSet.has(song.videoId);
       return (
         <div
           key={song.id}
@@ -505,9 +511,15 @@ const onPickSong = (song: Song) => {
 
           {/* 제목/아티스트 */}
           <div className="min-w-0 flex-1">
-            <div className="truncate text-sm md:text-base font-bold text-[var(--text-main)]">
-              {song.title}
-            </div>
+            <div className="flex items-center gap-2 truncate text-sm md:text-base font-bold text-[var(--text-main)]">
+  <span className="truncate">{song.title}</span>
+
+  {hot && (
+    <span className="shrink-0 rounded-full border border-red-400/40 bg-red-400/15 px-2 py-0.5 text-[10px] font-extrabold text-red-400">
+      HOT 10
+    </span>
+  )}
+</div>
             <div className="mt-0.5 truncate text-xs md:text-sm text-[var(--text-sub)]">
               {song.artist ?? "YouTube"}
             </div>
