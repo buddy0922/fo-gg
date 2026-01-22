@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 // import { authOptions } from "@/lib/auth"; // 네 프로젝트에 있으면 연결
+export const runtime = "nodejs";
 
 function getEmail(session: any) {
   return session?.user?.email as string | undefined;

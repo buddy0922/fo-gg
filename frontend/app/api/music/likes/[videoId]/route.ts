@@ -1,6 +1,7 @@
 // app/api/music/likes/[videoId]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+export const runtime = "nodejs";
 
 function isHot(count: number) {
   // ✅ 기준은 너 마음대로: 예) 10 이상이면 hot
