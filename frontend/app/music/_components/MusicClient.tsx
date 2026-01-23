@@ -8,7 +8,7 @@ import { usePlayerStore } from "@/app/music/_store/playerStore";
 import GlobalYouTubePlayer from "@/app/components/GlobalYouTubePlayer";
 
 type CategoryKey = "tournament" | "sports" | "chants" | "game";
-type PlaylistKey = "all" | "liked" | CategoryKey;
+type PlaylistKey = "all" | "liked" | "hot" | CategoryKey;
 
 type Song = {
   id: string;
@@ -28,7 +28,7 @@ type Category = {
 type Playlist =
   | Category
   | {
-      key: "all" | "liked";
+      key: "all" | "liked" | "hot";
       label: string;
       emoji: string;
       songs: Song[];
@@ -54,10 +54,11 @@ const CATEGORIES: Category[] = [
     { id: "gm-4", title: "THE PHOENIX", artist: "FIFA Online 3", videoId: "kfrdXhTiMJ4" },
     { id: "gm-5", title: "ICON BGM", artist: "FIFA Online 4", videoId: "df7ikTB3HGc" },
     { id: "gm-6", title: "Make Way", artist: "FIFA Online 4", videoId: "ri6RZVttf6A" },
-    { id: "gm-7", title: "집", artist: "FIFA Online 4", videoId: "RVPdKE-EsNA" },
+    { id: "gm-7", title: "Dear Maria, Count Me In", artist: "FIFA Online 4", videoId: "CtMcbx_tENc" },
     { id: "gm-8", title: "Put You In Your Place", artist: "FIFA Online 3", videoId: "Pc_Fok6fTbA" },
     { id: "gm-9", title: "The Great Escape", artist: "FIFA Online 3", videoId: "Wg9LZMY9czk" },
     { id: "gm-10", title: "Love Me Again", artist: "FIFA Online 3", videoId: "z8VJcM1shaw" },
+    { id: "gm-25", title: "집", artist: "FIFA Online 4", videoId: "RVPdKE-EsNA" },
 
     { id: "gm-11", title: "ON OUR WAY", artist: "FIFA 14", videoId: "CTue7yhHycQ" },
     { id: "gm-12", title: "Fly", artist: "Epik High (FIFA 07)", videoId: "_MbZXvMwtGQ" },
@@ -300,12 +301,19 @@ const LIKED = (likeSet: Set<string>): Playlist => ({
   songs: ALL.songs.filter((s) => likeSet.has(s.videoId)),
 });
 
+const HOT10 = (hotSongs: Song[]): Playlist => ({
+  key: "hot",
+  label: "HOT10",
+  emoji: "🔥",
+  songs: hotSongs,
+});
+
 
 export default function MusicClient() {
   const { data: session } = useSession();
 
   const [query, setQuery] = useState("");
-  const [activeCatKey, setActiveCatKey] = useState<PlaylistKey>("tournament");
+  const [activeCatKey, setActiveCatKey] = useState<PlaylistKey>("all");
 
   // ✅ likes 전역
   const hydrateLikes = usePlayerStore((s) => s.hydrateLikes);
@@ -336,17 +344,34 @@ useEffect(() => {
   hydrateLikes();
 }, [hydrateLikes]);
 
-  // ✅ playlists (likeSet 선언 이후!)
-  const playlists = useMemo<Playlist[]>(() => {
-    return [ALL, LIKED(likeSet), ...CATEGORIES];
-  }, [likeSet]);
+// ✅ TOP10 계산
+const topLiked = useMemo(() => {
+  return ALL.songs
+    .map((s) => ({ ...s, count: likeCounts[s.videoId] ?? 0 }))
+    .filter((s) => s.count > 0)
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 10);
+}, [likeCounts]);
 
-  const activeCategory = useMemo(() => {
-    return playlists.find((c) => c.key === activeCatKey) ?? playlists[0];
-  }, [activeCatKey, playlists]);
+// ✅ HOT10 탭에서 쓸 Song 배열(=count 제거)
+const hotSongs = useMemo(() => {
+  return topLiked.map(({ count, ...song }) => song);
+}, [topLiked]);
 
+// ✅ HOT 뱃지용 Set
+const hotSet = useMemo(() => {
+  return new Set(topLiked.map((s) => s.videoId));
+}, [topLiked]);
 
+// ✅ playlists (ALL → HOT10 → LIKED → CATEGORIES)
+const playlists = useMemo<Playlist[]>(() => {
+  return [ALL, HOT10(hotSongs), LIKED(likeSet), ...CATEGORIES];
+}, [likeSet, hotSongs]);
 
+// ✅ activeCategory
+const activeCategory = useMemo(() => {
+  return playlists.find((c) => c.key === activeCatKey) ?? playlists[0];
+}, [activeCatKey, playlists]);
 
 
   const onPickCategory = (key: PlaylistKey) => {
@@ -379,17 +404,6 @@ useEffect(() => {
     return ALL.songs.find((s) => s.videoId === activeVideoId) ?? null;
   }, [activeVideoId]);
 
-  const topLiked = useMemo(() => {
-  return ALL.songs
-    .map((s) => ({ ...s, count: likeCounts[s.videoId] ?? 0 }))
-    .filter((s) => s.count > 0)
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 10);
-}, [likeCounts]);
-
-const hotSet = useMemo(() => {
-  return new Set(topLiked.map((s) => s.videoId));
-}, [topLiked]);
 
 const activeQueue = useMemo(
   () =>
@@ -440,7 +454,9 @@ const onPickSong = (song: Song) => {
             <span className="text-xs text-[var(--text-sub)]">{activeCategory.songs.length}곡</span>
           </div>
 
-            <input
+            {/* 검색창: HOT 탭에서는 숨김 */}
+{activeCatKey !== "hot" && (
+  <input
     value={query}
     onChange={(e) => setQuery(e.target.value)}
     placeholder="노래 / 아티스트 검색"
@@ -452,40 +468,66 @@ const onPickSong = (song: Song) => {
       focus:outline-none focus:border-[#5CC4FF]
     "
   />
-
-  {topLiked.length > 0 && (
-  <div className="mb-4">
-    <h3 className="mb-2 text-sm font-extrabold text-[var(--text-main)]">
-      🔥 HOT
-    </h3>
-    <div className="flex gap-2 overflow-x-auto pb-1">
-      {topLiked.map((s) => (
-        <button
-          key={s.videoId}
-          onClick={() => setQueue(activeQueue, s.videoId)}
-          type="button"
-          className="shrink-0 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text-main)] hover:border-[#5CC4FF] transition"
-        >
-          ❤️ {s.count} · {s.title}
-        </button>
-      ))}
-    </div>
-  </div>
 )}
 
-  <div className="grid grid-cols-1 gap-3"></div>
+{/* HOT10 탭 UI */}
+{activeCatKey === "hot" ? (
+  <div className="grid grid-cols-1 gap-2">
+    {topLiked.length === 0 ? (
+      <div className="rounded-xl border border-[var(--border)] bg-white/5 p-4 text-sm text-[var(--text-sub)]">
+        아직 좋아요가 없어요. 첫 좋아요를 눌러보세요 🤍
+      </div>
+    ) : (
+      topLiked.map((s, idx) => {
+        const selected = s.videoId === activeVideoId;
+        return (
+          <div
+            key={s.videoId}
+            onClick={() => {
+  const q = topLiked.map((x) => ({
+    videoId: x.videoId,
+    title: x.title,
+    artist: x.artist,
+  }));
+  setQueue(q, s.videoId);
+}}
+            role="button"
+            tabIndex={0}
+            className={[
+              "group flex w-full cursor-pointer items-center justify-between gap-3 rounded-xl border p-3 text-left transition",
+              selected
+                ? "border-white/25 bg-white/10"
+                : "border-[var(--border)] bg-transparent hover:bg-white/5",
+            ].join(" ")}
+          >
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-extrabold text-[#FF6B6B]">#{idx + 1}</span>
+                <div className="truncate text-sm md:text-base font-bold text-[var(--text-main)]">
+                  {s.title}
+                </div>
+              </div>
+              <div className="mt-0.5 truncate text-xs md:text-sm text-[var(--text-sub)]">
+                {s.artist ?? "YouTube"}
+              </div>
+            </div>
 
-          <div className="grid grid-cols-1 gap-3">
-  {activeCategory.songs.length === 0 ? (
-    <div className="rounded-xl border border-[var(--border)] bg-white/5 p-4 text-sm text-[var(--text-sub)]">
-      아직 좋아요한 곡이 없어요. 🤍 버튼을 눌러 저장해보세요.
-    </div>
-  ) : (
-    filteredSongs.map((song) => {
-      const selected = song.videoId === activeVideoId;
-      const count = likeCounts[song.videoId] ?? 0;
-const hot = hotSet.has(song.videoId);
-      return (
+            <div className="shrink-0 text-xs font-bold text-[#5CC4FF] tabular-nums">
+              ❤️ {s.count}
+            </div>
+          </div>
+        );
+      })
+    )}
+  </div>
+) : (
+  <div className="grid grid-cols-1 gap-3">
+    {activeCategory.songs.length === 0 ? (
+      <div className="rounded-xl border border-[var(--border)] bg-white/5 p-4 text-sm text-[var(--text-sub)]">
+        아직 좋아요한 곡이 없어요. 🤍 버튼을 눌러 저장해보세요.
+      </div>
+    ) : (
+      filteredSongs.map((song) => (
         <div
           key={song.id}
           onClick={() => onPickSong(song)}
@@ -493,7 +535,7 @@ const hot = hotSet.has(song.videoId);
           tabIndex={0}
           className={[
             "group flex w-full cursor-pointer items-center gap-3 rounded-xl border p-3 text-left transition",
-            selected
+            song.videoId === activeVideoId
               ? "border-white/25 bg-white/10"
               : "border-[var(--border)] bg-transparent hover:bg-white/5",
           ].join(" ")}
@@ -509,67 +551,52 @@ const hot = hotSet.has(song.videoId);
             />
           </div>
 
-          {/* 제목/아티스트 */}
+          {/* 제목 */}
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 truncate text-sm md:text-base font-bold text-[var(--text-main)]">
-  <span className="truncate">{song.title}</span>
+              <span className="truncate">{song.title}</span>
 
-  {hot && (
-    <span className="shrink-0 rounded-full border border-red-400/40 bg-red-400/15 px-2 py-0.5 text-[10px] font-extrabold text-red-400">
-      HOT 10
-    </span>
-  )}
-</div>
+              {hotSet.has(song.videoId) && (
+                <span className="shrink-0 rounded-full border border-red-400/40 bg-red-400/15 px-2 py-0.5 text-[10px] font-extrabold text-red-400">
+                  HOT
+                </span>
+              )}
+            </div>
+
             <div className="mt-0.5 truncate text-xs md:text-sm text-[var(--text-sub)]">
               {song.artist ?? "YouTube"}
             </div>
           </div>
 
-          {/* 재생 상태 */}
+          {/* 좋아요 */}
           <div
-            className={[
-              "shrink-0 rounded-full px-3 py-1 text-xs font-bold",
-              selected
-                ? "bg-[#34E27A]/20 text-[#34E27A]"
-                : "bg-white/10 text-[var(--text-sub)]",
-            ].join(" ")}
-          >
-            {selected ? "재생중" : "재생"}
-          </div>
-
-          {/* 👍 좋아요 */}
-          <div
-            role="button"
-            tabIndex={0}
             onClick={async (e) => {
-  e.stopPropagation();
-  if (!session) {
-    await signIn("google");
-    return;
-  }
-  await toggleLikeStore(song.videoId);
-}}
+              e.stopPropagation();
+              if (!session) {
+                await signIn("google");
+                return;
+              }
+              await toggleLikeStore(song.videoId);
+            }}
             className={[
-              "ml-2 shrink-0 rounded-full border px-2.5 py-1 text-xs font-bold transition cursor-pointer select-none flex items-center gap-1",
+              "ml-2 shrink-0 rounded-full border px-2.5 py-1 text-xs font-bold transition cursor-pointer flex items-center gap-1",
               likeSet.has(song.videoId)
                 ? "border-[#5CC4FF]/40 bg-[#5CC4FF]/15 text-[#5CC4FF]"
-                : "border-[var(--border)] bg-white/5 text-[var(--text-sub)] hover:text-[var(--text-main)]",
+                : "border-[var(--border)] bg-white/5 text-[var(--text-sub)]",
             ].join(" ")}
           >
             <span>{likeSet.has(song.videoId) ? "❤️" : "🤍"}</span>
             <span className="tabular-nums">{likeCounts[song.videoId] ?? 0}</span>
           </div>
         </div>
-      );
-    })
-  )}
-</div>
-        </section>
+      ))
+    )}
+  </div>
+)}
+                </section>
 
-        {/* 유튜브 플레이어 */}
-
-
-
+        {/* 오른쪽 칸: 비워둠 */}
+        <div />
 
 </div>
 

@@ -284,8 +284,8 @@ async function loadMore() {
 >
         <h1 className="text-2xl font-extrabold">{nickname}</h1>
 
-        <div className="text-sm text-gray-300">
-          승률 <span className="text-white font-semibold">{winRate}%</span>
+        <div className="text-sm">
+          승률 <span className="font-semibold">{winRate}%</span>
           {streakType && (
             <>
               {" "}
@@ -307,7 +307,7 @@ async function loadMore() {
   {matches.slice(0, 20).map((m, idx) => (
     <div key={idx} className="relative flex-1">
       {idx === 0 && (
-        <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 text-xs text-white">
+        <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 text-xs">
           ▲
         </div>
       )}
@@ -317,12 +317,18 @@ async function loadMore() {
 </div>
         
       </div>
-      <RecentRingSummary
-  key={`ring:${nickname}`}   // ✅ 이게 핵심
-  title="최근 경기"
-  matches={matches}
-  take={20}
-/>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+  {/* 왼쪽: 최근 경기 (절반) */}
+  <RecentRingSummary
+    key={`ring:${nickname}`}
+    title="최근 경기"
+    matches={matches}
+    take={20}
+  />
+
+  {/* 오른쪽: 그냥 빈 공간 */}
+  <div />
+</div>
 
 <div className="flex gap-2 overflow-x-auto">
   {[
@@ -344,11 +350,15 @@ async function loadMore() {
           if (t.type !== null) qs.set("type", String(t.type));
           router.push(`/search?${qs.toString()}`);
         }}
+        style={{
+          background: "var(--surface)",
+          borderColor: "var(--border)",
+        }}
         className={[
-          "px-3 py-1.5 rounded-full text-sm border whitespace-nowrap",
+          "px-3 py-1.5 rounded-full text-sm border whitespace-nowrap transition",
           active
-            ? "bg-white text-black border-white"
-            : "bg-transparent text-gray-300 border-white/20",
+            ? "text-[var(--text-main)] font-semibold"
+            : "text-[var(--text-sub)] hover:text-[var(--text-main)]",
         ].join(" ")}
       >
         {t.label}
