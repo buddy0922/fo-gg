@@ -25,20 +25,20 @@ export default function FcNicknameGate() {
     })();
   }, [status]);
 
+  useEffect(() => {
+    const openGate = () => {
+      setOpen(true);
+    };
+
+    window.addEventListener("open-fc-nickname-gate", openGate);
+
+    return () => {
+      window.removeEventListener("open-fc-nickname-gate", openGate);
+    };
+  }, []);
+
   if (status !== "authenticated") return null;
   if (!open) return null;
-
-  useEffect(() => {
-  const openGate = () => {
-    setOpen(true);
-  };
-
-  window.addEventListener("open-fc-nickname-gate", openGate);
-
-  return () => {
-    window.removeEventListener("open-fc-nickname-gate", openGate);
-  };
-}, []);
 
   return (
     <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/50 px-4">
