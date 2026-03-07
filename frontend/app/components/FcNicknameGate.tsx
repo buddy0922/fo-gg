@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 export default function FcNicknameGate() {
   const { data: session, status } = useSession();
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [me, setMe] = useState<{ fcNickname?: string | null } | null>(null);
   const [open, setOpen] = useState(false);
@@ -70,6 +72,7 @@ export default function FcNicknameGate() {
 
                 setMe({ fcNickname: nick });
                 setOpen(false);
+                router.refresh();
               } finally {
                 setLoading(false);
               }

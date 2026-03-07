@@ -12,11 +12,12 @@ export async function GET() {
   const user = await prisma.user.findUnique({
     where: { email: session.user.email },
     select: {
-      fcNickname: true,
-      name: true,
-      email: true,
-      image: true,
-    },
+  fcNickname: true,
+  ouid: true,
+  name: true,
+  email: true,
+  image: true,
+},
   });
 
   return NextResponse.json({ user });

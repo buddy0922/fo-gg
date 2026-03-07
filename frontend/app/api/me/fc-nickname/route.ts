@@ -55,15 +55,21 @@ export async function POST(req: Request) {
     );
   }
 
+  const ouid = data.ouid;
+
   // ✅ 2. DB 저장
   await prisma.user.upsert({
   where: { email: session.user.email },
-  update: { fcNickname: nickname },
+  update: {
+    fcNickname: nickname,
+    ouid: ouid,
+  },
   create: {
     email: session.user.email,
     name: session.user.name ?? null,
     image: session.user.image ?? null,
     fcNickname: nickname,
+    ouid: ouid,
   },
 });
 

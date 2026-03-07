@@ -33,7 +33,6 @@ model Track {
   likes     TrackLike[]
   likeCount Int      @default(0) // 빠른 조회용 (캐시 카운트)
 }
-
 model TrackLike {
   id        String   @id @default(cuid())
   trackId   String
@@ -55,7 +54,8 @@ model User {
   email         String?   @unique
   emailVerified DateTime?
   image         String?
-  fcNickname    String?  // ✅ 여기 저장
+  fcNickname    String?
+  ouid          String?
 
   accounts      Account[]
   sessions      Session[]
