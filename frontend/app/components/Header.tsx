@@ -87,9 +87,10 @@ export default function Header() {
                     const nick = json?.user?.fcNickname;
 
                     if (!nick) {
-                      alert("구단주 등록을 먼저 해주세요.");
-                      return;
-                    }
+  alert("구단주 등록을 먼저 해주세요.");
+  window.dispatchEvent(new Event("open-fc-nickname-gate"));
+  return;
+}
 
                     window.location.href =
                       `/search?nickname=${encodeURIComponent(nick)}`;

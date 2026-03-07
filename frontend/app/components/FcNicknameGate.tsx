@@ -28,6 +28,18 @@ export default function FcNicknameGate() {
   if (status !== "authenticated") return null;
   if (!open) return null;
 
+  useEffect(() => {
+  const openGate = () => {
+    setOpen(true);
+  };
+
+  window.addEventListener("open-fc-nickname-gate", openGate);
+
+  return () => {
+    window.removeEventListener("open-fc-nickname-gate", openGate);
+  };
+}, []);
+
   return (
     <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/50 px-4">
       <div className="w-full max-w-md rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
