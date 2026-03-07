@@ -1,11 +1,26 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import ThemeToggle from "@/app/components/ThemeToggle";
 import { signIn, signOut, useSession } from "next-auth/react";
 
 export default function Header() {
   const { data: session, status } = useSession(); // ✅ 이거 추가
+  const [fcNickname, setFcNickname] = useState<string | null>(null);
+
+  useEffect(() => {
+  if (!session) {
+    setFcNickname(null);
+    return;
+  }
+
+  (async () => {
+    const res = await fetch("/api/me", { cache: "no-store" });
+    const json = await res.json().catch(() => null);
+    setFcNickname(json?.user?.fcNickname ?? null);
+  })();
+}, [session]);
 
   return (
     <header
@@ -84,8 +99,8 @@ export default function Header() {
                   내 구단
                 </button>
               <span className="text-sm opacity-80">
-                {session.user?.name ?? "사용자"}
-              </span>
+  {fcNickname ?? session.user?.name ?? "사용자"}
+</span>
               <button
                 onClick={() => signOut()}
                 className="text-sm font-medium hover:text-[#34E27A]"
