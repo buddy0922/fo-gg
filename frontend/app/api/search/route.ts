@@ -22,6 +22,12 @@ async function nxFetch(pathWithQuery: string) {
   return res;
 }
 
+async function getUserBasic(ouid: string) {
+  const res = await nxFetch(`/user/basic?ouid=${encodeURIComponent(ouid)}`);
+  if (!res.ok) return null;
+  return res.json();
+}
+
 async function getDivisionMeta() {
   const res = await fetch(
     "https://open.api.nexon.com/static/fconline/meta/division.json",
@@ -92,6 +98,7 @@ type CachedBase = {
   ouid: string;
   user: {
     nickname: string;
+    level?: number;               // ✅ 추가
     highestDivision?: number;
     highestDivisionName?: string;
   };
@@ -237,7 +244,17 @@ if (matchtypeFilter === null) {
 }
 
     // ✅ base 캐시 저장 (5분)
-    const user = { nickname, highestDivision, highestDivisionName };
+    // ✅ level 가져오기
+const basic = await getUserBasic(ouid);
+const level =
+  typeof basic?.level === "number"
+    ? basic.level
+    : typeof basic?.userLevel === "number"
+    ? basic.userLevel
+    : undefined;
+
+// ✅ base 캐시 저장 (5분)
+const user = { nickname, level, highestDivision, highestDivisionName };
 
     // ✅ [방법 A] 전체탭이면: candidateIds를 더 많이 detail로 가져와 matchDate로 정렬 → 정렬된 matchId들을 matchIdsAll로 캐싱
 if (matchtypeFilter === null) {

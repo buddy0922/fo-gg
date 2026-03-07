@@ -40,7 +40,7 @@ export default function SearchBox({ initialValue = "" }: { initialValue?: string
 
       <button
         onClick={onSearch}
-        className="px-4 py-2 w-24 rounded text-sm font-semibold transition bg-[#34E27A] text-black hover:opacity-90"
+        className="px-4 py-2 w-24 rounded text-sm font-semibold transition bg-[#34E27A] text-black hover:opacity-90 cursor-pointer"
       >
         검색
       </button>

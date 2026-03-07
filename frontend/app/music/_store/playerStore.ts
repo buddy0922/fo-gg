@@ -35,6 +35,9 @@ type PlayerState = {
   next: () => void;
   prev: () => void;
 
+  syncFromVideoId: (videoId: string) => void;
+  
+
     // ====== likes ======
   likesLoaded: boolean;
   likeSet: Set<string>;
@@ -201,6 +204,18 @@ toggleLike: async (videoId: string) => {
     const prevIdx = (queueIndex - 1 + queue.length) % queue.length;
     set({ queueIndex: prevIdx, activeVideoId: queue[prevIdx].videoId, isOpen: true, isPlaying: true });
   },
+
+    syncFromVideoId: (videoId: string) =>
+    set((state) => {
+      const idx = state.queue.findIndex((s) => s.videoId === videoId);
+      if (idx === -1) return {};
+      return {
+        queueIndex: idx,
+        activeVideoId: videoId,
+        isOpen: true,
+        isPlaying: true,
+      };
+    }),
 
   requestTogglePlayPause: () => set((s) => ({ toggleSignal: s.toggleSignal + 1 })),
 }));

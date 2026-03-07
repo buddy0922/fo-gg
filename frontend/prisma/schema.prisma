@@ -55,6 +55,7 @@ model User {
   email         String?   @unique
   emailVerified DateTime?
   image         String?
+  fcNickname    String?  // ✅ 여기 저장
 
   accounts      Account[]
   sessions      Session[]

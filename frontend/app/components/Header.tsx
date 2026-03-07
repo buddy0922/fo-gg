@@ -63,6 +63,26 @@ export default function Header() {
 
           {status === "loading" ? null : session ? (
             <>
+            {/* ✅ 내 구단 버튼 */}
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const res = await fetch("/api/me", { cache: "no-store" });
+                    const json = await res.json().catch(() => null);
+                    const nick = json?.user?.fcNickname;
+
+                    if (!nick) {
+                      alert("구단주 등록을 먼저 해주세요.");
+                      return;
+                    }
+
+                    window.location.href =
+                      `/search?nickname=${encodeURIComponent(nick)}`;
+                  }}
+                  className="text-sm font-bold hover:text-[#34E27A]"
+                >
+                  내 구단
+                </button>
               <span className="text-sm opacity-80">
                 {session.user?.name ?? "사용자"}
               </span>

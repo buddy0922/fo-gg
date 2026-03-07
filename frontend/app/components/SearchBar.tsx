@@ -25,10 +25,10 @@ export default function SearchBar({ initial }: { initial?: string }) {
         onChange={(e) => setNickname(e.target.value)}
       />
       <button
-        className="bg-[#32D74B] hover:bg-[#28C840] text-black px-4 rounded font-semibold"
-      >
-        검색
-      </button>
+  className="bg-[#32D74B] hover:bg-[#28C840] text-black px-4 rounded font-semibold cursor-pointer"
+>
+  검색
+</button>
     </form>
   );
 }

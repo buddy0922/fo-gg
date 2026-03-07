@@ -6,6 +6,8 @@ import { useEffect, useMemo, useState } from "react";
 import SearchBox from "@/app/components/SearchBox";
 import { useLoading } from "@/app/providers/LoadingProvider";
 import RecentRingSummary from "@/app/components/RecentRingSummary";
+import Image from "next/image";
+import { TIER_IMAGE } from "@/app/lib/tier"; // 경로는 네 파일 위치에 맞게
 
 
 
@@ -70,6 +72,7 @@ export default function SearchPageClient() {
 
 const [user, setUser] = useState<null | {
   nickname: string;
+  level?: number;
   highestDivision?: number;
   highestDivisionName?: string;
 }>(null);
@@ -282,7 +285,22 @@ async function loadMore() {
   className="border rounded-xl p-6 space-y-4"
   style={{ background: "var(--surface)", borderColor: "var(--border)" }}
 >
-        <h1 className="text-2xl font-extrabold">{nickname}</h1>
+        <h1 className="flex items-center gap-2 text-2xl font-extrabold">
+  <span>{nickname}</span>
+
+  {user?.highestDivision !== undefined && TIER_IMAGE[user.highestDivision] && (
+    <Image
+      src={TIER_IMAGE[user.highestDivision]}
+      alt={user.highestDivisionName ?? "tier"}
+      width={24}
+      height={24}
+      className="shrink-0"
+      priority
+    />
+  )}
+
+  {user?.level !== undefined && <span>Lv.{user.level}</span>}
+</h1>
 
         <div className="text-sm">
           승률 <span className="font-semibold">{winRate}%</span>

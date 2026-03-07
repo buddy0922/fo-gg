@@ -114,14 +114,30 @@ const initRef = useRef(false);
     playerRef.current = e.target;
   };
 
+  const loadedRef = useRef<string>("");
+
+  useEffect(() => {
+  const p = playerRef.current;
+  if (!p) return;
+  if (!activeVideoId) return;
+
+  // ✅ store가 바뀌었으면 실제 유튜브도 그 id로 로드
+  try {
+    p.loadVideoById(activeVideoId);
+    p.playVideo?.();
+  } catch {}
+}, [activeVideoId]);
+
+
   const onStateChange: YouTubeProps["onStateChange"] = (e) => {
-    if (e.data === 1) setIsPlaying(true);
-    if (e.data === 2) setIsPlaying(false);
-    if (e.data === 0) {
-      setIsPlaying(false);
-      if (autoPlay) next();
-    }
-  };
+  if (e.data === 1) setIsPlaying(true);
+  if (e.data === 2) setIsPlaying(false);
+
+  if (e.data === 0) {
+    setIsPlaying(false);
+    if (autoPlay) next();
+  }
+};
 
   useEffect(() => {
   // 음악 페이지에서는 pos 로직 안 씀
