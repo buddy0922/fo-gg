@@ -9,6 +9,7 @@ import  LoadingProvider  from "@/app/providers/LoadingProvider";
 import ThemeProvider from "./providers/ThemeProvider";
 import AuthProvider from "./providers/AuthProvider";
 import GlobalYouTubePlayer from "@/app/components/GlobalYouTubePlayer";
+import FcNicknameGate from "@/app/components/FcNicknameGate";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -44,6 +45,7 @@ export default function RootLayout({
         <ThemeProvider>
           <LoadingProvider>
             <Header />
+            <FcNicknameGate />
 
             {/* 🔥 useSearchParams 사용 → Suspense 필수 */}
             <Suspense fallback={null}>
