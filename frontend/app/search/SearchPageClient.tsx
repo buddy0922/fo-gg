@@ -61,10 +61,15 @@ function formatDate(dateString?: string) {
 export default function SearchPageClient() {
   const sp = useSearchParams();
 
-  const nickname = useMemo(() => {
-    const raw = sp.get("nickname") ?? "";
-    return raw.trim();
-  }, [sp]);
+  const { nickname, ouid } = useMemo(() => {
+  const rawNickname = sp.get("nickname") ?? "";
+  const rawOuid = sp.get("ouid") ?? "";
+
+  return {
+    nickname: rawNickname.trim(),
+    ouid: rawOuid.trim(),
+  };
+}, [sp]);
 
   const router = useRouter();
 
@@ -105,19 +110,24 @@ useEffect(() => {
   let ignore = false;
 
   async function loadFirstPage() {
-    if (!nickname) {
-      setUser(null);
-      setMatches([]);
-      setNextOffset(0);
-      setHasMore(false);
-      setError(null);
-      return;
-    }
+    if (!nickname && !ouid) {
+  setUser(null);
+  setMatches([]);
+  setNextOffset(0);
+  setHasMore(false);
+  setError(null);
+  return;
+}
 
     setLoading(true);
     try {
       const qs = new URLSearchParams();
-      qs.set("nickname", nickname);
+
+if (ouid) {
+  qs.set("ouid", ouid);
+} else {
+  qs.set("nickname", nickname);
+}
 
       // ✅ 전체 탭이면 type을 안 넣고, 특정 탭이면 matchtype으로
       if (type !== null) qs.set("matchtype", String(type));
@@ -162,12 +172,17 @@ useEffect(() => {
 }, [nickname, type, setLoading]);
 
 async function loadMore() {
-  if (!nickname || !hasMore) return;
+  if ((!nickname && !ouid) || !hasMore) return;
 
   setLoading(true);
   try {
     const qs = new URLSearchParams();
-    qs.set("nickname", nickname);
+
+if (ouid) {
+  qs.set("ouid", ouid);
+} else {
+  qs.set("nickname", nickname);
+}
     if (type !== null) qs.set("matchtype", String(type));
 
     qs.set("offset", String(nextOffset));
@@ -190,7 +205,7 @@ async function loadMore() {
 }
 
   // ✅ 닉네임이 없을 때
-  if (!nickname) {
+  if (!nickname && !ouid) {
     return (
       <div className="max-w-3xl mx-auto p-6 space-y-6">
         <SearchBox />
