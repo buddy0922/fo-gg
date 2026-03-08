@@ -8,6 +8,7 @@ import { signIn, signOut, useSession } from "next-auth/react";
 export default function Header() {
   const { data: session, status } = useSession(); // ✅ 이거 추가
   const [fcNickname, setFcNickname] = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
   if (!session) {
@@ -77,38 +78,69 @@ export default function Header() {
           <ThemeToggle />
 
           {status === "loading" ? null : session ? (
-            <>
-            {/* ✅ 내 구단 버튼 */}
-                <button
-                  type="button"
-                  onClick={async () => {
-                    const res = await fetch("/api/me", { cache: "no-store" });
-                    const json = await res.json().catch(() => null);
-                    const nick = json?.user?.fcNickname;
+            <div className="relative">
+  <button
+    type="button"
+    onClick={() => setMenuOpen((prev) => !prev)}
+    className="text-sm font-bold hover:text-[#34E27A]"
+  >
+    {fcNickname ?? session.user?.name ?? "사용자"} ▼
+  </button>
 
-                    if (!nick) {
+  {menuOpen ? (
+    <div
+      className="absolute right-0 mt-2 w-44 rounded-xl border p-2 shadow-lg"
+      style={{
+        background: "var(--surface)",
+        borderColor: "var(--border)",
+      }}
+    >
+      <button
+        type="button"
+        onClick={async () => {
+          setMenuOpen(false);
+
+          const res = await fetch("/api/me", { cache: "no-store" });
+const json = await res.json().catch(() => null);
+const ouid = json?.user?.ouid;
+
+if (!ouid) {
   alert("구단주 등록을 먼저 해주세요.");
   window.dispatchEvent(new Event("open-fc-nickname-gate"));
   return;
 }
 
-                    window.location.href =
-                      `/search?nickname=${encodeURIComponent(nick)}`;
-                  }}
-                  className="text-sm font-bold hover:text-[#34E27A]"
-                >
-                  내 구단
-                </button>
-              <span className="text-sm opacity-80">
-  {fcNickname ?? session.user?.name ?? "사용자"}
-</span>
-              <button
-                onClick={() => signOut()}
-                className="text-sm font-medium hover:text-[#34E27A]"
-              >
-                로그아웃
-              </button>
-            </>
+window.location.href = `/search?ouid=${encodeURIComponent(ouid)}`;
+        }}
+        className="block w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-white/5"
+      >
+        내 구단
+      </button>
+
+      <button
+        type="button"
+        onClick={() => {
+          setMenuOpen(false);
+          window.dispatchEvent(new Event("open-fc-nickname-gate"));
+        }}
+        className="mt-1 block w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-white/5"
+      >
+        구단주 변경
+      </button>
+
+      <button
+        type="button"
+        onClick={() => {
+          setMenuOpen(false);
+          signOut();
+        }}
+        className="mt-1 block w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-white/5"
+      >
+        로그아웃
+      </button>
+    </div>
+  ) : null}
+</div>
           ) : (
             <button
               onClick={() => signIn("google")}

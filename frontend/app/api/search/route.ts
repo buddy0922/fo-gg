@@ -109,10 +109,17 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
 
   const rawNickname = searchParams.get("nickname");
-  const nickname = (rawNickname ?? "").trim();
-  if (!nickname) {
-    return NextResponse.json({ error: "nickname_required" }, { status: 400 });
-  }
+const rawOuid = searchParams.get("ouid");
+
+const nickname = (rawNickname ?? "").trim();
+const ouidFromQuery = (rawOuid ?? "").trim();
+
+if (!nickname && !ouidFromQuery) {
+  return NextResponse.json(
+    { error: "nickname_or_ouid_required" },
+    { status: 400 }
+  );
+}
 
   // ✅ matchtype: URL에서 type(프론트용) 말고, API는 matchtype으로 받음
   // - 전체 탭이면 matchtype 없음(null)
@@ -126,7 +133,11 @@ export async function GET(req: Request) {
   const limit = rawLimit ? Math.min(50, Math.max(1, Number(rawLimit))) : 20;
 
   // ✅ 캐시는 "base(ouid/user/matchIdsAll)"만 저장 (offset/limit은 캐시에 포함 X)
-  const cacheKey = `search:${nickname.toLowerCase()}:mt:${rawMatchtype ?? "all"}`;
+  const cacheBase = ouidFromQuery
+  ? `ouid:${ouidFromQuery}`
+  : `nickname:${nickname.toLowerCase()}`;
+
+const cacheKey = `search:${cacheBase}:mt:${rawMatchtype ?? "all"}`;
   const cachedBase = getCache(cacheKey) as CachedBase | null;
 
   try {
@@ -164,25 +175,34 @@ const hasMore = nextOffset < matchIdsAll.length;
 
     // ✅ B) base가 없으면: ouid + matchIdsAll 만들어서 캐시 후, 첫 페이지 detail만
     // 1) nickname -> ouid
-    const idRes = await nxFetch(`/id?nickname=${encodeURIComponent(nickname)}`);
+    // 1) ouid 확정
+let ouid: string | undefined = ouidFromQuery;
+let resolvedNickname = nickname;
 
-    if (idRes.status === 503) {
-      return NextResponse.json({ error: "temporary_unavailable" }, { status: 503 });
-    }
+if (!ouid) {
+  const idRes = await nxFetch(`/id?nickname=${encodeURIComponent(nickname)}`);
 
-    if (!idRes.ok) {
-      const text = await idRes.text().catch(() => "");
-      return NextResponse.json(
-        { error: "upstream_error", status: idRes.status, body: text.slice(0, 500) },
-        { status: 500 }
-      );
-    }
+  if (idRes.status === 503) {
+    return NextResponse.json(
+      { error: "temporary_unavailable" },
+      { status: 503 }
+    );
+  }
 
-    const idJson = await idRes.json();
-    const ouid: string | undefined = idJson?.ouid;
-    if (!ouid) {
-      return NextResponse.json({ error: "user_not_found" }, { status: 404 });
-    }
+  if (!idRes.ok) {
+    const text = await idRes.text().catch(() => "");
+    return NextResponse.json(
+      { error: "upstream_error", status: idRes.status, body: text.slice(0, 500) },
+      { status: 500 }
+    );
+  }
+
+  const idJson = await idRes.json();
+  ouid = idJson?.ouid;
+  if (!ouid) {
+    return NextResponse.json({ error: "user_not_found" }, { status: 404 });
+  }
+}
 
     // 2) maxdivision (공식 50 기준 유지)
     const maxDivRes = await nxFetch(`/user/maxdivision?ouid=${encodeURIComponent(ouid)}`);
@@ -254,7 +274,12 @@ const level =
     : undefined;
 
 // ✅ base 캐시 저장 (5분)
-const user = { nickname, level, highestDivision, highestDivisionName };
+const user = {
+  nickname: resolvedNickname || nickname || ouid,
+  level,
+  highestDivision,
+  highestDivisionName,
+};
 
     // ✅ [방법 A] 전체탭이면: candidateIds를 더 많이 detail로 가져와 matchDate로 정렬 → 정렬된 matchId들을 matchIdsAll로 캐싱
 if (matchtypeFilter === null) {
