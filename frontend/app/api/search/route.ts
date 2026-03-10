@@ -256,7 +256,7 @@ const matchIdsAll = Array.from(matchMap.keys()); // ✅ 이건 이제 "총 길�
 let candidateIds: string[] = [];
 
 if (matchtypeFilter === null) {
-  const PER_TYPE_TAKE = 35; // ✅ 여기만 조절 (30~40 추천)
+  const PER_TYPE_TAKE = 12; // ✅ 여기만 조절 (30~40 추천)
   const seen = new Set<string>();
 
   for (const mt of typesToFetch) {
@@ -292,7 +292,7 @@ const user = {
     // ✅ [방법 A] 전체탭이면: candidateIds를 더 많이 detail로 가져와 matchDate로 정렬 → 정렬된 matchId들을 matchIdsAll로 캐싱
 if (matchtypeFilter === null) {
   // 첫 페이지를 "진짜 최신"으로 만들기 위한 seed 개수
-  const SEED = Math.min(candidateIds.length, 120);
+  const SEED = Math.min(candidateIds.length, 40);
 const seedIds = candidateIds.slice(0, SEED);
 
   // 1) seedIds detail을 병렬로 받아옴
