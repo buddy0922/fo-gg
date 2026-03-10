@@ -71,7 +71,7 @@ const searchParams = useSearchParams();
     setRecentSearches(next);
     saveRecentSearches(next);
 
-    const target = `/search?nickname=${encodeURIComponent(v)}`;
+    const target = `/search?nickname=${encodeURIComponent(v)}&type=50`;
 const current = `${pathname}?${searchParams.toString()}`;
 
 setOpen(false);

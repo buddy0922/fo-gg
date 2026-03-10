@@ -110,7 +110,7 @@ if (!ouid) {
   return;
 }
 
-window.location.href = `/search?ouid=${encodeURIComponent(ouid)}`;
+window.location.href = `/search?ouid=${encodeURIComponent(ouid)}&type=50`;
         }}
         className="block w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-white/5"
       >
