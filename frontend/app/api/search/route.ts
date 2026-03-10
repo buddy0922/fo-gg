@@ -292,31 +292,17 @@ const user = {
     // ✅ [방법 A] 전체탭이면: candidateIds를 더 많이 detail로 가져와 matchDate로 정렬 → 정렬된 matchId들을 matchIdsAll로 캐싱
 if (matchtypeFilter === null) {
   // 첫 페이지를 "진짜 최신"으로 만들기 위한 seed 개수
-  const SEED = Math.min(candidateIds.length, 40);
-const seedIds = candidateIds.slice(0, SEED);
+  if (matchtypeFilter === null) {
+  const fastPageIds = candidateIds.slice(offset, offset + limit);
 
-  // 1) seedIds detail을 병렬로 받아옴
-  const seedDetails = await fetchDetailsBatch(ouid, seedIds, matchTypeNameById);
+  setCache(cacheKey, { ouid, user, matchIdsAll }, 300);
 
-  // 2) matchDate 최신순 정렬
-  seedDetails.sort((a, b) => {
-    const ta = a.matchDate ? new Date(a.matchDate).getTime() : 0;
-    const tb = b.matchDate ? new Date(b.matchDate).getTime() : 0;
-    return tb - ta;
-  });
+  const pageResults = await fetchDetailsBatch(ouid, fastPageIds, matchTypeNameById);
+  const order = new Map(fastPageIds.map((id, i) => [id, i]));
+  pageResults.sort((a, b) => (order.get(a.matchId)! - order.get(b.matchId)!));
 
-  // 3) 정렬된 matchId 리스트 만들기
-  const sortedSeedIds = seedDetails.map((x) => x.matchId);
-const seedSet = new Set(sortedSeedIds);
-const restIds = matchIdsAll.filter((id) => !seedSet.has(id));
-const sortedIdsAll = [...sortedSeedIds, ...restIds];
-  // 4) 이걸 matchIdsAll로 캐싱 (✅ 여기서 최신순 보장)
-  setCache(cacheKey, { ouid, user, matchIdsAll: sortedIdsAll }, 300);
-
-  // 5) 이번 요청(page) 응답은 seedDetails에서 offset/limit만 잘라서 반환
-  const pageResults = seedDetails.slice(offset, offset + limit);
   const nextOffset = offset + pageResults.length;
-  const hasMore = nextOffset < sortedIdsAll.length;
+  const hasMore = nextOffset < matchIdsAll.length;
 
   return NextResponse.json({
     ouid,
@@ -325,6 +311,7 @@ const sortedIdsAll = [...sortedSeedIds, ...restIds];
     nextOffset,
     hasMore,
   });
+}
 }
 
     setCache(cacheKey, { ouid, user, matchIdsAll }, 300);
