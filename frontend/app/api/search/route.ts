@@ -48,7 +48,7 @@ async function getMatchTypeMeta() {
 
 async function fetchDetailsBatch(ouid: string, ids: string[], matchTypeNameById: Map<number,string>) {
   const results: any[] = [];
-  const CONCURRENCY = 6;
+  const CONCURRENCY = 10;
 
   for (let i = 0; i < ids.length; i += CONCURRENCY) {
     const chunk = ids.slice(i, i + CONCURRENCY);
