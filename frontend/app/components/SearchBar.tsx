@@ -10,7 +10,7 @@ export default function SearchBar({ initial }: { initial?: string }) {
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!nickname.trim()) return;
-    router.push(`/search?nickname=${encodeURIComponent(nickname)}`);
+    router.push(`/search?nickname=${encodeURIComponent(nickname)}&type=50`);
   }
 
   return (
