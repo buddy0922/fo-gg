@@ -73,7 +73,7 @@ export default function SearchPageClient() {
 
   const router = useRouter();
 
-  const PAGE_SIZE = 20;
+  const PAGE_SIZE = 10;
 
 const [user, setUser] = useState<null | {
   nickname: string;
