@@ -23,48 +23,27 @@ async function nxFetch(pathWithQuery: string) {
 }
 
 async function getUserBasic(ouid: string) {
-  const cacheKey = `user-basic:${ouid}`;
-  const cached = getCache(cacheKey);
-  if (cached) return cached;
-
   const res = await nxFetch(`/user/basic?ouid=${encodeURIComponent(ouid)}`);
   if (!res.ok) return null;
-
-  const json = await res.json();
-  setCache(cacheKey, json, 300); // 5분
-  return json;
+  return res.json();
 }
 
 async function getDivisionMeta() {
-  const cacheKey = "meta:division";
-  const cached = getCache(cacheKey);
-  if (cached) return cached;
-
   const res = await fetch(
     "https://open.api.nexon.com/static/fconline/meta/division.json",
-    { cache: "force-cache" }
+    { cache: "no-store" }
   );
   if (!res.ok) return null;
-
-  const json = await res.json();
-  setCache(cacheKey, json, 3600); // 1시간
-  return json;
+  return res.json();
 }
 
 async function getMatchTypeMeta() {
-  const cacheKey = "meta:matchtype";
-  const cached = getCache(cacheKey);
-  if (cached) return cached;
-
   const res = await fetch(
     "https://open.api.nexon.com/static/fconline/meta/matchtype.json",
-    { cache: "force-cache" }
+    { cache: "force-cache" } // ✅ 변경
   );
   if (!res.ok) return null;
-
-  const json = await res.json();
-  setCache(cacheKey, json, 3600); // 1시간
-  return json;
+  return res.json();
 }
 
 async function fetchDetailsBatch(ouid: string, ids: string[], matchTypeNameById: Map<number,string>) {
@@ -234,16 +213,9 @@ if (!ouid) {
 }
 
     // 2) maxdivision (공식 50 기준 유지)
-    const maxDivCacheKey = `user-maxdivision:${ouid}`;
-let maxDivJson = getCache(maxDivCacheKey);
-
-if (!maxDivJson) {
-  const maxDivRes = await nxFetch(`/user/maxdivision?ouid=${encodeURIComponent(ouid)}`);
-  maxDivJson = maxDivRes.ok ? await maxDivRes.json() : [];
-  setCache(maxDivCacheKey, maxDivJson, 300); // 5분
-}
-
-const list = Array.isArray(maxDivJson) ? maxDivJson : [];
+    const maxDivRes = await nxFetch(`/user/maxdivision?ouid=${encodeURIComponent(ouid)}`);
+    const maxDivJson = maxDivRes.ok ? await maxDivRes.json() : [];
+    const list = Array.isArray(maxDivJson) ? maxDivJson : [];
 
     const official = list.filter((d: any) => d.matchType === 50);
     const highestDivision =
