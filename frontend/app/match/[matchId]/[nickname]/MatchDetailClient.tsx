@@ -37,6 +37,8 @@ export default function MatchDetailClient({
 
   const myNickname = leftTeam.nickname;
   const enemyNickname = rightTeam.nickname;
+  const myOuid = leftTeam.ouid;
+  const enemyOuid = rightTeam.ouid;
 
   /* ===============================
      티어 정보 (이미 page.tsx에서 조회됨)
@@ -70,7 +72,11 @@ export default function MatchDetailClient({
           {/* 왼쪽: 전적검색 유저 */}
           <div className="flex-1 pr-10 mt-6 flex flex-col items-end">
             <Link
-  href={`/search?nickname=${encodeURIComponent(myNickname)}`}
+  href={
+    myOuid
+      ? `/search?ouid=${encodeURIComponent(myOuid)}`
+      : `/search?nickname=${encodeURIComponent(myNickname)}`
+  }
   className="text-2xl font-extrabold hover:underline"
   style={{ color: "var(--text-main)" }}
 >
@@ -102,12 +108,16 @@ export default function MatchDetailClient({
           {/* 오른쪽: 상대 유저 */}
           <div className="flex-1 pl-10 mt-6 flex flex-col items-start">
             <Link
-              href={`/search?nickname=${encodeURIComponent(enemyNickname)}`}
-              className="text-2xl font-extrabold hover:underline"
-              style={{ color: "var(--text-main)" }}
-            >
-              {enemyNickname}
-            </Link>
+  href={
+    enemyOuid
+      ? `/search?ouid=${encodeURIComponent(enemyOuid)}`
+      : `/search?nickname=${encodeURIComponent(enemyNickname)}`
+  }
+  className="text-2xl font-extrabold hover:underline"
+  style={{ color: "var(--text-main)" }}
+>
+  {enemyNickname}
+</Link>
 
             {enemyTierName && (
               <div className="flex items-center gap-2 mt-1">
