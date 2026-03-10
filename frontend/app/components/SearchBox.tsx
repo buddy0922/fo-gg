@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useLoading } from "@/app/providers/LoadingProvider";
 
 const STORAGE_KEY = "fc_recent_searches";
@@ -25,6 +25,8 @@ function saveRecentSearches(items: string[]) {
 
 export default function SearchBox({ initialValue = "" }: { initialValue?: string }) {
   const router = useRouter();
+  const pathname = usePathname();
+const searchParams = useSearchParams();
   const { setLoading } = useLoading();
 
   const wrapperRef = useRef<HTMLDivElement | null>(null);
@@ -69,9 +71,17 @@ export default function SearchBox({ initialValue = "" }: { initialValue?: string
     setRecentSearches(next);
     saveRecentSearches(next);
 
-    setOpen(false);
-    setLoading(true);
-    router.push(`/search?nickname=${encodeURIComponent(v)}`);
+    const target = `/search?nickname=${encodeURIComponent(v)}`;
+const current = `${pathname}?${searchParams.toString()}`;
+
+setOpen(false);
+
+if (current === target) {
+  return;
+}
+
+setLoading(true);
+router.push(target);
   };
 
   return (
