@@ -110,6 +110,14 @@ if (!match) {
 
     tackleTry: me.defence?.tackleTry ?? 0,
     tackleSuccess: me.defence?.tackleSuccess ?? 0,
+
+    blockTry: me.defence?.blockTry ?? 0,
+blockSuccess: me.defence?.blockSuccess ?? 0,
+
+possession: me.matchDetail?.possession ?? 0,
+dribble: me.matchDetail?.dribble ?? 0,
+cornerKick: me.matchDetail?.cornerKick ?? 0,
+offsideCount: me.matchDetail?.offsideCount ?? 0,
   },
 };
         } catch {

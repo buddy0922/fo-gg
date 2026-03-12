@@ -318,6 +318,14 @@ if (ouid) {
     acc.tackleTry += s.tackleTry ?? 0;
     acc.tackleSuccess += s.tackleSuccess ?? 0;
 
+    acc.blockTry += s.blockTry ?? 0;
+acc.blockSuccess += s.blockSuccess ?? 0;
+
+acc.possession += s.possession ?? 0;
+acc.dribble += s.dribble ?? 0;
+acc.cornerKick += s.cornerKick ?? 0;
+acc.offsideCount += s.offsideCount ?? 0;
+
     return acc;
   },
   {
@@ -338,6 +346,14 @@ if (ouid) {
 
     tackleTry: 0,
     tackleSuccess: 0,
+
+    blockTry: 0,
+blockSuccess: 0,
+
+possession: 0,
+dribble: 0,
+cornerKick: 0,
+offsideCount: 0,
   }
 );
 
