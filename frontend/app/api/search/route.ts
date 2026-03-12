@@ -56,7 +56,7 @@ async function fetchDetailsBatch(ouid: string, ids: string[], matchTypeNameById:
     const chunkResults = await Promise.all(
       chunk.map(async (matchId) => {
         try {
-          const detailCacheKey = `match-detail:${matchId}`;
+          const detailCacheKey = `match-detail:v2:${matchId}`;
 let match = getCache(detailCacheKey);
 
 if (!match) {
@@ -81,15 +81,37 @@ if (!match) {
           const mt = Number(match?.matchType);
           const mtName = matchTypeNameById.get(mt) ?? `타입 ${mt}`;
 
+          console.log("DEBUG matchInfo", match.matchInfo);
+
           return {
-            matchId,
-            result: myGoal > enemyGoal ? "승" : myGoal < enemyGoal ? "패" : "무",
-            score: `${myGoal} : ${enemyGoal}`,
-            opponent: enemy.nickname,
-            matchDate: match.matchDate,
-            matchType: mtName,
-            matchTypeId: mt,
-          };
+  matchId,
+  result: myGoal > enemyGoal ? "승" : myGoal < enemyGoal ? "패" : "무",
+  score: `${myGoal} : ${enemyGoal}`,
+  opponent: enemy.nickname,
+  matchDate: match.matchDate,
+  matchType: mtName,
+  matchTypeId: mt,
+
+  playStyle: {
+    shootTotal: me.shoot?.shootTotal ?? 0,
+    effectiveShootTotal: me.shoot?.effectiveShootTotal ?? 0,
+    goalTotal: me.shoot?.goalTotalDisplay ?? 0,
+    shootInPenalty: me.shoot?.shootInPenalty ?? 0,
+    shootOutPenalty: me.shoot?.shootOutPenalty ?? 0,
+
+    passTry: me.pass?.passTry ?? 0,
+    passSuccess: me.pass?.passSuccess ?? 0,
+    shortPassTry: me.pass?.shortPassTry ?? 0,
+    shortPassSuccess: me.pass?.shortPassSuccess ?? 0,
+    longPassTry: me.pass?.longPassTry ?? 0,
+    longPassSuccess: me.pass?.longPassSuccess ?? 0,
+    throughPassTry: me.pass?.throughPassTry ?? 0,
+    throughPassSuccess: me.pass?.throughPassSuccess ?? 0,
+
+    tackleTry: me.defence?.tackleTry ?? 0,
+    tackleSuccess: me.defence?.tackleSuccess ?? 0,
+  },
+};
         } catch {
           return null;
         }
@@ -145,7 +167,7 @@ if (!nickname && !ouidFromQuery) {
   ? `ouid:${ouidFromQuery}`
   : `nickname:${nickname.toLowerCase()}`;
 
-const cacheKey = `search:${cacheBase}:mt:${rawMatchtype ?? "all"}`;
+const cacheKey = `search:v2:${cacheBase}:mt:${rawMatchtype ?? "all"}`;
   const cachedBase = getCache(cacheKey) as CachedBase | null;
 
   try {

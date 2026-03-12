@@ -8,6 +8,8 @@ import { useLoading } from "@/app/providers/LoadingProvider";
 import RecentRingSummary from "@/app/components/RecentRingSummary";
 import Image from "next/image";
 import { TIER_IMAGE } from "@/app/lib/tier"; // 경로는 네 파일 위치에 맞게
+import PlayStyleCard from "@/app/components/PlayStyleCard";
+import { detectPlayStyle } from "@/app/lib/playstyle";
 
 
 
@@ -31,6 +33,7 @@ function getSummary(matches: any[]) {
   });
 
   const winRate = recent.length > 0 ? Math.round((win / recent.length) * 100) : 0;
+
 
   let streak = 0;
   let streakType: "승" | "패" | "무" | null = null;
@@ -153,6 +156,7 @@ if (ouid) {
       // ✅ 서버 응답에서 user/matches/nextOffset/hasMore 받는다고 가정
       setUser(json.user ?? null);
       setMatches(json.matches ?? []);
+      console.log("matches sample", json.matches?.[0]);
       setNextOffset(json.nextOffset ?? PAGE_SIZE);
       setHasMore(Boolean(json.hasMore));
       setError(null);
@@ -291,6 +295,61 @@ if (ouid) {
   type === 60 ? "친선경기" : `타입 ${type}`;
 
   const { winRate, streak, streakType } = getSummary(matches);
+  const styleStats = matches.slice(0, 20).reduce(
+  (acc, m) => {
+    const s = m.playStyle;
+    if (!s) return acc;
+
+    acc.shootTotal += s.shootTotal ?? 0;
+    acc.effectiveShootTotal += s.effectiveShootTotal ?? 0;
+    acc.goalTotal += s.goalTotal ?? 0;
+    acc.shootInPenalty += s.shootInPenalty ?? 0;
+    acc.shootOutPenalty += s.shootOutPenalty ?? 0;
+
+    acc.passTry += s.passTry ?? 0;
+    acc.passSuccess += s.passSuccess ?? 0;
+    acc.shortPassTry += s.shortPassTry ?? 0;
+    acc.shortPassSuccess += s.shortPassSuccess ?? 0;
+    acc.longPassTry += s.longPassTry ?? 0;
+    acc.longPassSuccess += s.longPassSuccess ?? 0;
+    acc.throughPassTry += s.throughPassTry ?? 0;
+    acc.throughPassSuccess += s.throughPassSuccess ?? 0;
+
+    acc.tackleTry += s.tackleTry ?? 0;
+    acc.tackleSuccess += s.tackleSuccess ?? 0;
+
+    return acc;
+  },
+  {
+    shootTotal: 0,
+    effectiveShootTotal: 0,
+    goalTotal: 0,
+    shootInPenalty: 0,
+    shootOutPenalty: 0,
+
+    passTry: 0,
+    passSuccess: 0,
+    shortPassTry: 0,
+    shortPassSuccess: 0,
+    longPassTry: 0,
+    longPassSuccess: 0,
+    throughPassTry: 0,
+    throughPassSuccess: 0,
+
+    tackleTry: 0,
+    tackleSuccess: 0,
+  }
+);
+
+const playStyle =
+  matches.length > 0
+    ? detectPlayStyle(styleStats)
+    : {
+        key: "none",
+        title: "분석 중",
+        description: "최근 경기 데이터를 분석하고 있습니다.",
+        subDescription: "조금만 기다리면 플레이 스타일이 계산됩니다.",
+      };
 
   return (
     <div className="max-w-3xl mx-auto p-6 space-y-6">
@@ -350,6 +409,7 @@ if (ouid) {
 </div>
         
       </div>
+      
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
   {/* 왼쪽: 최근 경기 (절반) */}
   <RecentRingSummary
@@ -358,10 +418,19 @@ if (ouid) {
     matches={matches}
     take={20}
   />
+  
+
 
   {/* 오른쪽: 그냥 빈 공간 */}
   <div />
 </div>
+
+<PlayStyleCard
+  playStyle={playStyle}
+  stats={styleStats}
+/>
+
+
 
 <div className="flex gap-2 overflow-x-auto">
   {[
