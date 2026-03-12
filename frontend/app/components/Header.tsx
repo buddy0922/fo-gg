@@ -47,28 +47,28 @@ export default function Header() {
         <nav className="flex gap-8 text-sm">
           <Link
             href="/meta"
-            className="font-medium text-[var(--text-main)] transition-colors duration-200 hover:text-[#34E27A]"
+            className="font-semibold text-[var(--text-main)] transition-colors duration-200 hover:text-[#34E27A]"
           >
             추천 메타
           </Link>
 
           <Link
             href="/tactics"
-            className="font-medium text-[var(--text-main)] transition-colors duration-200 hover:text-[#34E27A]"
+            className="font-semibold text-[var(--text-main)] transition-colors duration-200 hover:text-[#34E27A]"
           >
             경기 전술
           </Link>
 
           <Link
             href="/service"
-            className="font-medium text-[var(--text-main)] transition-colors duration-200 hover:text-[#34E27A]"
+            className="font-semibold text-[var(--text-main)] transition-colors duration-200 hover:text-[#34E27A]"
           >
             서비스 안내
           </Link>
 
           <Link
             href="/music"
-            className="font-medium text-[var(--text-main)] transition-colors duration-200 hover:text-[#34E27A]"
+            className="font-semibold text-[var(--text-main)] transition-colors duration-200 hover:text-[#34E27A]"
           >
             음악
           </Link>

@@ -39,7 +39,7 @@ export default function RootLayout({
      crossOrigin="anonymous"></script>
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-[#0B0F19] text-white`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased theme-bg text-white`}
       >
         <AuthProvider>
         <ThemeProvider>
