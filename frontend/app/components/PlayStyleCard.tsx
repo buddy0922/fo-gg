@@ -12,6 +12,11 @@ type Props = {
     shootInPenalty: number;
     shootOutPenalty: number;
 
+        goalInPenalty: number;
+    goalOutPenalty: number;
+    goalHeading: number;
+    goalFreekick: number;
+
     passTry: number;
     passSuccess: number;
     shortPassTry: number;
@@ -46,6 +51,11 @@ export default function PlayStyleCard({ playStyle, stats }: Props) {
   const goalTotal = stats.goalTotal ?? 0;
   const inside = stats.shootInPenalty ?? 0;
   const outside = stats.shootOutPenalty ?? 0;
+
+    const goalInPenalty = stats.goalInPenalty ?? 0;
+  const goalOutPenalty = stats.goalOutPenalty ?? 0;
+  const goalHeading = stats.goalHeading ?? 0;
+  const goalFreekick = stats.goalFreekick ?? 0;
 
   const passTry = stats.passTry ?? 0;
   const passSuccess = stats.passSuccess ?? 0;
@@ -228,6 +238,20 @@ export default function PlayStyleCard({ playStyle, stats }: Props) {
             </div>
             <div style={{ color: "var(--text-sub)" }}>
               코너킥 {cornerKick}회 · 오프사이드 {offsideCount}회
+            </div>
+          </div>
+                    <div>
+            <div
+              className="font-semibold mb-2"
+              style={{ color: "var(--text-main)" }}
+            >
+              득점 패턴 분석
+            </div>
+            <div style={{ color: "var(--text-sub)" }}>
+              박스 안 득점 {safePercent(goalInPenalty, goalTotal)}% · 박스 밖 득점 {safePercent(goalOutPenalty, goalTotal)}%
+            </div>
+            <div className="mt-1" style={{ color: "var(--text-sub)" }}>
+              헤딩 득점 {safePercent(goalHeading, goalTotal)}% · 프리킥 득점 {safePercent(goalFreekick, goalTotal)}%
             </div>
           </div>
         </div>

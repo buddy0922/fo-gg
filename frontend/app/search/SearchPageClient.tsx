@@ -61,6 +61,38 @@ function formatDate(dateString?: string) {
   ).padStart(2, "0")}`;
 }
 
+const POSITION_LABEL: Record<number, string> = {
+  0: "GK",
+  1: "SW",
+  2: "RWB",
+  3: "RB",
+  4: "RCB",
+  5: "CB",
+  6: "LCB",
+  7: "LB",
+  8: "LWB",
+  9: "RDM",
+  10: "CDM",
+  11: "LDM",
+  12: "RM",
+  13: "RCM",
+  14: "CM",
+  15: "LCM",
+  16: "LM",
+  17: "RAM",
+  18: "CAM",
+  19: "LAM",
+  20: "RF",
+  21: "CF",
+  22: "LF",
+  23: "RW",
+  24: "RS",
+  25: "ST",
+  26: "LS",
+  27: "LW",
+  28: "SUB",
+};
+
 export default function SearchPageClient() {
   const sp = useSearchParams();
 
@@ -306,6 +338,11 @@ if (ouid) {
     acc.shootInPenalty += s.shootInPenalty ?? 0;
     acc.shootOutPenalty += s.shootOutPenalty ?? 0;
 
+    acc.goalInPenalty += s.goalInPenalty ?? 0;
+acc.goalOutPenalty += s.goalOutPenalty ?? 0;
+acc.goalHeading += s.goalHeading ?? 0;
+acc.goalFreekick += s.goalFreekick ?? 0;
+
     acc.passTry += s.passTry ?? 0;
     acc.passSuccess += s.passSuccess ?? 0;
     acc.shortPassTry += s.shortPassTry ?? 0;
@@ -334,6 +371,11 @@ acc.offsideCount += s.offsideCount ?? 0;
     goalTotal: 0,
     shootInPenalty: 0,
     shootOutPenalty: 0,
+
+    goalInPenalty: 0,
+goalOutPenalty: 0,
+goalHeading: 0,
+goalFreekick: 0,
 
     passTry: 0,
     passSuccess: 0,
@@ -367,6 +409,54 @@ const playStyle =
         subDescription: "조금만 기다리면 플레이 스타일이 계산됩니다.",
       };
 
+const positionRatings = matches.slice(0, 20).reduce((acc, m) => {
+  const players = Array.isArray(m.players) ? m.players : [];
+
+  for (const p of players) {
+    const pos = p.spPosition;
+    const rating = Number(p.spRating ?? 0);
+    const name = String(p.name ?? p.spName ?? "").trim();
+
+    if (!pos || !rating) continue;
+
+    if (!acc[pos]) {
+      acc[pos] = {
+        sum: 0,
+        count: 0,
+        names: {} as Record<string, number>,
+      };
+    }
+
+    acc[pos].sum += rating;
+    acc[pos].count += 1;
+
+    if (name) {
+      acc[pos].names[name] = (acc[pos].names[name] ?? 0) + 1;
+    }
+  }
+
+  return acc;
+}, {} as Record<number, { sum: number; count: number; names: Record<string, number> }>);
+
+const weakPositions = (
+  Object.entries(positionRatings) as [
+    string,
+    { sum: number; count: number; names: Record<string, number> }
+  ][]
+)
+  .map(([pos, v]) => {
+    const topPlayer =
+      Object.entries(v.names).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "";
+
+    return {
+      spPosition: Number(pos),
+      avgRating: v.count > 0 ? v.sum / v.count : 0,
+      topPlayer,
+    };
+  })
+  .sort((a, b) => a.avgRating - b.avgRating)
+  .slice(0, 3);
+
   return (
     <div className="max-w-3xl mx-auto p-6 space-y-6">
       <SearchBox initialValue={nickname} />
@@ -375,7 +465,10 @@ const playStyle =
   className="border rounded-xl p-6 space-y-4"
   style={{ background: "var(--surface)", borderColor: "var(--border)" }}
 >
-        <h1 className="flex items-center gap-2 text-2xl font-extrabold">
+        <div className="flex items-start justify-between">
+          <div>
+  <h1 className="flex items-center gap-2 text-2xl font-extrabold">
+        
   <span>{nickname}</span>
 
   {user?.highestDivision !== undefined && TIER_IMAGE[user.highestDivision] && (
@@ -391,6 +484,19 @@ const playStyle =
 
   {user?.level !== undefined && <span>Lv.{user.level}</span>}
 </h1>
+</div>
+<button
+  onClick={() => {
+    const url = `${window.location.origin}/search?nickname=${encodeURIComponent(nickname)}`;
+    navigator.clipboard.writeText(url);
+    alert("전적 링크가 복사되었습니다.");
+  }}
+  className="text-xs px-3 py-1 rounded border hover:opacity-80"
+  style={{ borderColor: "var(--border)" }}
+>
+  공유
+</button>
+</div>
 
         <div className="text-sm">
           승률 <span className="font-semibold">{winRate}%</span>
@@ -445,6 +551,51 @@ const playStyle =
   playStyle={playStyle}
   stats={styleStats}
 />
+
+<div
+  className="border rounded-xl p-5"
+  style={{ background: "var(--surface)", borderColor: "var(--border)" }}
+>
+  <div
+    className="text-lg font-extrabold mb-2"
+    style={{ color: "var(--text-main)" }}
+  >
+    보완이 필요한 포지션
+  </div>
+
+  <div className="space-y-2">
+    {weakPositions.map((p, idx) => (
+      <div
+        key={p.spPosition}
+        className="flex items-center justify-between rounded-lg px-3 py-2"
+        style={{ background: "var(--surface-strong)" }}
+      >
+        <div>
+  <div style={{ color: "var(--text-main)" }}>
+    {idx + 1}. {POSITION_LABEL[p.spPosition] ?? `포지션 ${p.spPosition}`}
+  </div>
+
+  {p.topPlayer && (
+    <div className="text-xs mt-1" style={{ color: "var(--text-sub)" }}>
+      자주 기용한 선수: {p.topPlayer}
+    </div>
+  )}
+
+  <div className="text-xs mt-1" style={{ color: "var(--text-sub)" }}>
+    {p.avgRating < 4
+      ? "최근 경기에서 가장 흔들린 자리입니다."
+      : p.avgRating < 4.3
+      ? "조금 더 보완하면 팀 밸런스가 좋아질 수 있습니다."
+      : "상대적으로 덜 강한 포지션입니다."}
+  </div>
+</div>
+        <div style={{ color: "var(--text-sub)" }}>
+          평균 평점 {p.avgRating.toFixed(2)}
+        </div>
+      </div>
+    ))}
+  </div>
+</div>
 
 
 

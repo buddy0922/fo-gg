@@ -99,6 +99,11 @@ if (!match) {
     shootInPenalty: me.shoot?.shootInPenalty ?? 0,
     shootOutPenalty: me.shoot?.shootOutPenalty ?? 0,
 
+    goalInPenalty: me.shoot?.goalInPenalty ?? 0,
+goalOutPenalty: me.shoot?.goalOutPenalty ?? 0,
+goalHeading: me.shoot?.goalHeading ?? 0,
+goalFreekick: me.shoot?.goalFreekick ?? 0,
+
     passTry: me.pass?.passTry ?? 0,
     passSuccess: me.pass?.passSuccess ?? 0,
     shortPassTry: me.pass?.shortPassTry ?? 0,
@@ -119,6 +124,7 @@ dribble: me.matchDetail?.dribble ?? 0,
 cornerKick: me.matchDetail?.cornerKick ?? 0,
 offsideCount: me.matchDetail?.offsideCount ?? 0,
   },
+players: me.player ?? [],
 };
         } catch {
           return null;
