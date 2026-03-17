@@ -9,7 +9,12 @@ import RecentRingSummary from "@/app/components/RecentRingSummary";
 import Image from "next/image";
 import { TIER_IMAGE } from "@/app/lib/tier"; // 경로는 네 파일 위치에 맞게
 import PlayStyleCard from "@/app/components/PlayStyleCard";
-import { detectPlayStyle } from "@/app/lib/playstyle";
+import {
+  detectPlayStyle,
+  getStyleStrengthWeakness,
+  getTacticRecommendation,
+} from "@/app/lib/playstyle";
+
 
 
 
@@ -408,6 +413,8 @@ const playStyle =
         subDescription: "조금만 기다리면 플레이 스타일이 계산됩니다.",
       };
 
+      const styleProsCons = getStyleStrengthWeakness(styleStats);
+
 const positionRatings = matches.slice(0, 20).reduce((acc, m) => {
   const players = Array.isArray(m.players) ? m.players : [];
 
@@ -459,133 +466,90 @@ const weakPositions = (
   const formation = (() => {
   const recent = matches.slice(0, 20);
 
-  const avg = {
-    defenders: 0,
-    dm: 0,
-    cm: 0,
-    am: 0,
-    wingers: 0,
-    strikers: 0,
+  const normalizePos = (pos: string) => {
+    if (pos === "LWB") return "LB";
+    if (pos === "RWB") return "RB";
+    return pos;
   };
+
+  const formationMap: Record<string, string[]> = {
+    "42211": ["LB", "LCB", "RCB", "RB", "LDM", "RDM", "LM", "RM", "CAM", "ST"],
+    "4231": ["LB", "LCB", "RCB", "RB", "LDM", "RDM", "LAM", "CAM", "RAM", "ST"],
+    "4222": ["LB", "LCB", "RCB", "RB", "LDM", "RDM", "LAM", "RAM", "LS", "RS"],
+    "424": ["LB", "LCB", "RCB", "RB", "LM", "LCM", "RCM", "RM", "LS", "RS"],
+    "4123": ["LB", "LCB", "RCB", "RB", "CDM", "LCM", "RCM", "LW", "ST", "RW"],
+    "4141": ["LB", "LCB", "RCB", "RB", "CDM", "LM", "LCM", "RCM", "RM", "ST"],
+    "442": ["LB", "LCB", "RCB", "RB", "LM", "LCM", "RCM", "RM", "LS", "RS"],
+    "41212": ["LB", "LCB", "RCB", "RB", "CDM", "LCM", "CAM", "RCM", "LS", "RS"],
+    "4132": ["LB", "LCB", "RCB", "RB", "CDM", "LCM", "CAM", "RCM", "LS", "RS"],
+    "4213": ["LB", "LCB", "RCB", "RB", "LDM", "RDM", "CAM", "LW", "ST", "RW"],
+    "433": ["LB", "LCB", "RCB", "RB", "LCM", "CM", "RCM", "LW", "ST", "RW"],
+  };
+
+  const formationCount: Record<string, number> = {};
 
   for (const m of recent) {
     const players = Array.isArray(m.players) ? m.players : [];
 
-    let defenders = 0;
-    let dm = 0;
-    let cm = 0;
-    let am = 0;
-    let wingers = 0;
-    let strikers = 0;
+    const actual = players
+      .map((p: any) => POSITION_LABEL[Number(p.spPosition)])
+      .filter((pos: string | undefined) => pos && pos !== "GK" && pos !== "SUB")
+      .map((pos: string) => normalizePos(pos))
+      .sort();
+      
+    console.log("formation actual", actual);
+    if (actual.length !== 10) continue;
 
-    for (const p of players) {
-      const posNum = Number(p.spPosition);
-      const pos = POSITION_LABEL[posNum];
+    let matched = "분석 불가";
 
-      if (!pos || pos === "GK" || pos === "SUB") continue;
+    for (const [name, shape] of Object.entries(formationMap)) {
+      const expected = shape.map(normalizePos).sort();
 
-      // 수비수
-      if (["CB", "LCB", "RCB", "SW", "LB", "LWB", "RB", "RWB"].includes(pos)) {
-        defenders += 1;
-        continue;
-      }
-
-      // 수비형 미드필더
-      if (["CDM", "LDM", "RDM"].includes(pos)) {
-        dm += 1;
-        continue;
-      }
-
-      // 중앙 미드필더
-      if (["CM", "LCM", "RCM"].includes(pos)) {
-        cm += 1;
-        continue;
-      }
-
-      // 공격형 미드필더
-      if (["CAM", "LAM", "RAM", "LM", "RM"].includes(pos)) {
-        am += 1;
-        continue;
-      }
-
-      // 윙어
-      if (["LW", "RW"].includes(pos)) {
-        wingers += 1;
-        continue;
-      }
-
-      // 공격수
-      if (["ST", "LS", "RS", "CF", "RF", "LF"].includes(pos)) {
-        strikers += 1;
-        continue;
+      if (JSON.stringify(actual) === JSON.stringify(expected)) {
+        matched = name;
+        break;
       }
     }
 
-    avg.defenders += defenders;
-    avg.dm += dm;
-    avg.cm += cm;
-    avg.am += am;
-    avg.wingers += wingers;
-    avg.strikers += strikers;
+    formationCount[matched] = (formationCount[matched] ?? 0) + 1;
   }
 
-  const totalMatches = recent.length || 1;
-
-  const defenders = Math.round(avg.defenders / totalMatches);
-  const dm = Math.round(avg.dm / totalMatches);
-  const cm = Math.round(avg.cm / totalMatches);
-  const am = Math.round(avg.am / totalMatches);
-  const wingers = Math.round(avg.wingers / totalMatches);
-  const strikers = Math.round(avg.strikers / totalMatches);
-
-  const midfieldTotal = dm + cm + am;
-  const attackTotal = wingers + strikers;
-
-  if (!defenders && !midfieldTotal && !attackTotal) return "분석 불가";
-
-  // 4-2-3-1
-  if (defenders === 4 && dm >= 2 && am >= 3 && strikers === 1) {
-    return "4-2-3-1";
-  }
-
-  // 4-2-2-2
-  if (defenders === 4 && dm >= 2 && am >= 2 && strikers >= 2) {
-    return "4-2-2-2";
-  }
-
-  // 4-1-2-3
-  if (defenders === 4 && dm === 1 && cm >= 2 && attackTotal >= 3) {
-    return "4-1-2-3";
-  }
-
-  // 4-3-3
-  if (defenders === 4 && midfieldTotal >= 3 && wingers >= 2 && strikers >= 1) {
-    return "4-3-3";
-  }
-
-  // 4-4-2
-  if (defenders === 4 && midfieldTotal >= 4 && strikers >= 2) {
-    return "4-4-2";
-  }
-
-  // fallback
-  return `${defenders}-${midfieldTotal}-${attackTotal}`;
+  const best = Object.entries(formationCount).sort((a, b) => b[1] - a[1])[0];
+  return best?.[0] ?? "분석 불가 (등록되지 않은 포메이션입니다. 개발자에게 문의해주세요.)";
 })();
 
-const formationDescription = (() => {
+const tacticRecommendation = getTacticRecommendation({
+  playStyle,
+  formation,
+  weakPositions,
+});
+
+  const formationDescription = (() => {
   switch (formation) {
-    case "4-2-3-1":
-      return "가장 안정적인 밸런스형 포메이션입니다. 수비 안정감과 2선 활용이 좋은 편입니다.";
-    case "4-2-2-2":
-      return "중앙 장악과 빠른 공격 전개에 강한 포메이션입니다. 투톱 활용이 핵심입니다.";
-    case "4-1-2-3":
-      return "수미 1명을 중심으로 한 공격적인 4-3-3 계열입니다. 측면과 중앙을 모두 활용합니다.";
-    case "4-3-3":
-      return "가장 대표적인 공격 밸런스형 포메이션입니다. 윙 활용과 전방 압박에 유리합니다.";
-    case "4-4-2":
-      return "전통적인 안정형 포메이션입니다. 라인 간격 유지와 투톱 조합이 장점입니다.";
+    case "42211":
+      return "2CDM + 2LM 구조의 안정적인 전개형 포메이션입니다.";
+    case "4231":
+      return "가장 대중적인 밸런스형 포메이션입니다. CAM 활용이 핵심입니다.";
+    case "4222":
+      return "투톱 기반 빠른 공격 전개에 특화된 포메이션입니다.";
+    case "4123":
+      return "수미 중심의 공격형 4-3-3 구조입니다.";
+    case "4141":
+      return "수비 안정성이 높은 단단한 포메이션입니다.";
+    case "442":
+      return "전통적인 밸런스형 포메이션입니다.";
+    case "41212":
+      return "중앙 밀집형 전개에 강한 포메이션입니다.";
+    case "4132":
+      return "중앙 공격 집중형 포메이션입니다.";
+    case "4213":
+      return "빠른 공격 전개와 전방 압박에 유리합니다.";
+    case "433":
+      return "윙 중심 공격 전개에 강한 포메이션입니다.";
+    case "424":
+      return "극단적인 공격형 포메이션입니다.";
     default:
-      return "최근 20경기 선수 배치를 기반으로 계산된 포메이션입니다.";
+      return "최근 20경기 기반으로 분석된 포메이션입니다.";
   }
 })();
 
@@ -683,6 +647,108 @@ const formationDescription = (() => {
   playStyle={playStyle}
   stats={styleStats}
 />
+
+<div
+  className="border rounded-xl p-5"
+  style={{ background: "var(--surface)", borderColor: "var(--border)" }}
+>
+  <div
+    className="text-lg font-extrabold mb-4"
+    style={{ color: "var(--text-main)" }}
+  >
+    스타일 전술 장단점
+  </div>
+
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div
+      className="rounded-xl p-4"
+      style={{ background: "var(--surface-strong)" }}
+    >
+      <div
+        className="font-bold mb-2"
+        style={{ color: "var(--text-main)" }}
+      >
+        장점
+      </div>
+
+      <div className="space-y-2">
+        {styleProsCons.strengths.length > 0 ? (
+          styleProsCons.strengths.map((item, idx) => (
+            <div
+              key={idx}
+              className="text-sm"
+              style={{ color: "var(--text-sub)" }}
+            >
+              ✅ {item}
+            </div>
+          ))
+        ) : (
+          <div className="text-sm" style={{ color: "var(--text-sub)" }}>
+            아직 뚜렷한 장점이 분석되지 않았습니다.
+          </div>
+        )}
+      </div>
+    </div>
+
+    <div
+      className="rounded-xl p-4"
+      style={{ background: "var(--surface-strong)" }}
+    >
+      <div
+        className="font-bold mb-2"
+        style={{ color: "var(--text-main)" }}
+      >
+        단점
+      </div>
+
+      <div className="space-y-2">
+        {styleProsCons.weaknesses.length > 0 ? (
+          styleProsCons.weaknesses.map((item, idx) => (
+            <div
+              key={idx}
+              className="text-sm"
+              style={{ color: "var(--text-sub)" }}
+            >
+              ⚠️ {item}
+            </div>
+          ))
+        ) : (
+          <div className="text-sm" style={{ color: "var(--text-sub)" }}>
+            아직 뚜렷한 약점이 분석되지 않았습니다.
+          </div>
+        )}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div
+  className="border rounded-xl p-5"
+  style={{ background: "var(--surface)", borderColor: "var(--border)" }}
+>
+  <div
+    className="text-lg font-extrabold mb-2"
+    style={{ color: "var(--text-main)" }}
+  >
+    내 전술 추천
+  </div>
+
+  <div className="text-base font-semibold" style={{ color: "var(--text-main)" }}>
+    {tacticRecommendation.summary}
+  </div>
+
+  <div className="mt-3 space-y-2">
+    {tacticRecommendation.details.map((item, idx) => (
+      <div
+        key={idx}
+        className="text-sm"
+        style={{ color: "var(--text-sub)" }}
+      >
+        ▶ {item}
+      </div>
+    ))}
+  </div>
+</div>
 
 <div
   className="border rounded-xl p-5"

@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 type Team = {
   nickname?: string;
   matchDetail?: {
@@ -203,6 +205,7 @@ function buildReasons(my: Team, enemy: Team): Reason[] {
 
 export default function LossDiagnosis({ my, enemy }: { my: Team; enemy: Team }) {
   const myResult = (my.matchDetail?.matchResult ?? "") as string;
+  const [openItems, setOpenItems] = useState<Record<string, boolean>>({});
 
   // if (myResult !== "패") return null;
 
@@ -223,68 +226,109 @@ export default function LossDiagnosis({ my, enemy }: { my: Team; enemy: Team }) 
     );
   }
 
+  const toggleItem = (key: string) => {
+  setOpenItems((prev) => ({
+    ...prev,
+    [key]: !prev[key],
+  }));
+};
+
   return (
-    <div
-  className="border rounded-xl p-5 space-y-4"
-  style={{ background: "var(--surface)", borderColor: "var(--border)" }}
->
-      <div className="flex items-center justify-between">
+  <div
+    className="border rounded-xl p-5 space-y-4"
+    style={{ background: "var(--surface)", borderColor: "var(--border)" }}
+  >
+    <div className="flex items-start justify-between gap-4">
+      <div>
         <h2
-  className="text-lg font-extrabold"
-  style={{ color: "var(--text-main)" }}
->
-  코치 리포트 · 개선 포인트 TOP 3
-</h2>
-        <span className="text-xs" style={{ color: "var(--text-sub)" }}>
-  경기 결과: {myResult || "-"}
-</span>
+          className="text-lg font-extrabold"
+          style={{ color: "var(--text-main)" }}
+        >
+          코치 리포트 · 개선 포인트 TOP 3
+        </h2>
+        <div className="text-sm mt-1" style={{ color: "var(--text-sub)" }}>
+          이번 경기 데이터를 바탕으로, 다음 경기에서 바로 적용 가능한 체크리스트를 정리했어요.
+        </div>
       </div>
 
-      <div className="text-sm" style={{ color: "var(--text-sub)" }}>
-  이번 경기 데이터를 바탕으로, 다음 경기에서 바로 적용 가능한 체크리스트를 정리했어요.
-</div>
-      <div className="space-y-3">
-        {reasons.map((r, idx) => (
-          <div
-  key={r.key}
-  className="rounded-xl p-4 border"
-  style={{ background: "var(--surface)", borderColor: "var(--border)" }}
->
-            <div className="flex items-start gap-3">
-              <div
-  className="mt-0.5 h-6 w-6 rounded-full flex items-center justify-center text-sm font-bold"
-  style={{ background: "var(--border)", color: "var(--text-main)" }}
->
-                {idx + 1}
-              </div>
-
-              <div className="flex-1">
-                <div className="font-semibold" style={{ color: "var(--text-main)" }}>
-  {r.title}
-</div>
-                <div className="text-sm mt-1" style={{ color: "var(--text-sub)" }}>
-  {r.desc}
-</div>
-
-                <div className="mt-3">
-                  <div className="text-xs font-semibold mb-1" style={{ color: "var(--text-main)" }}>
-  ▶ 다음 경기 체크리스트
-</div>
-                  <ul className="list-disc pl-5 text-sm space-y-1" style={{ color: "var(--text-sub)" }}>
-                    {r.rec.map((t, i) => (
-                      <li key={i}>{t}</li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div className="mt-3 text-xs" style={{ color: "var(--text-sub)" }}>
-  * 이 리포트는 경기 기록(슈팅/점유/패스 등) 기반의 자동 요약입니다.
-</div>
-              </div>
-            </div>
-          </div>
-        ))}
+      <div className="flex flex-col items-end gap-2">
+        <span className="text-xs" style={{ color: "var(--text-sub)" }}>
+          경기 결과: {myResult || "-"}
+        </span>
       </div>
     </div>
-  );
-}
+
+    <div className="space-y-3">
+      {reasons.map((r, idx) => (
+        <div
+          key={r.key}
+          className="rounded-xl p-4 border"
+          style={{ background: "var(--surface)", borderColor: "var(--border)" }}
+        >
+          <div className="flex items-start gap-3">
+            <div
+              className="mt-0.5 h-6 w-6 rounded-full flex items-center justify-center text-sm font-bold"
+              style={{ background: "var(--border)", color: "var(--text-main)" }}
+            >
+              {idx + 1}
+            </div>
+
+            <div className="flex-1">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <div
+                    className="font-semibold"
+                    style={{ color: "var(--text-main)" }}
+                  >
+                    {r.title}
+                  </div>
+
+                  <div
+                    className="text-sm mt-1"
+                    style={{ color: "var(--text-sub)" }}
+                  >
+                    {r.desc}
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => toggleItem(r.key)}
+                  className="text-xs opacity-70 hover:opacity-100"
+                  style={{ color: "var(--text-sub)" }}
+                >
+                  {openItems[r.key] ? "닫기 ▲" : "자세히 ▼"}
+                </button>
+              </div>
+
+              {openItems[r.key] && (
+                <>
+                  <div className="mt-3">
+                    <div
+                      className="text-xs font-semibold mb-1"
+                      style={{ color: "var(--text-main)" }}
+                    >
+                      ▶ 다음 경기 체크리스트
+                    </div>
+                    <ul
+                      className="list-disc pl-5 text-sm space-y-1"
+                      style={{ color: "var(--text-sub)" }}
+                    >
+                      {r.rec.map((t, i) => (
+                        <li key={i}>{t}</li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div className="mt-3 text-xs" style={{ color: "var(--text-sub)" }}>
+                    * 이 리포트는 경기 기록(슈팅/점유/패스 등) 기반의 자동 요약입니다.
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+)};

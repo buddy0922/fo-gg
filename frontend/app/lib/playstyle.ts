@@ -217,3 +217,102 @@ if (top1.key === "shot_spammer" && top2 && top2.score > top1.score * 0.85) {
 // 기본
 return top1;
 }
+
+export function getStyleStrengthWeakness(stats: any) {
+  const strengths: string[] = [];
+  const weaknesses: string[] = [];
+
+  const safe = (a: number, b: number) => (b > 0 ? a / b : 0);
+
+  // 🔥 슛 정확도
+  const shotAcc = safe(stats.effectiveShootTotal, stats.shootTotal);
+  if (shotAcc > 0.7) strengths.push("결정력이 매우 뛰어납니다");
+  else if (shotAcc < 0.4) weaknesses.push("슈팅 정확도가 낮은 편입니다");
+
+  // 🔥 패스 정확도
+  const passAcc = safe(stats.passSuccess, stats.passTry);
+  if (passAcc > 0.85) strengths.push("패스 성공률이 매우 안정적입니다");
+  else if (passAcc < 0.7) weaknesses.push("패스 미스가 많은 편입니다");
+
+  // 🔥 스루패스 비중
+  const throughRatio = safe(stats.throughPassTry, stats.passTry);
+  if (throughRatio > 0.25) strengths.push("침투 패스를 적극적으로 활용합니다");
+  else if (throughRatio < 0.1) weaknesses.push("침투 패스 활용이 적은 편입니다");
+
+  // 🔥 롱패스 비중
+  const longRatio = safe(stats.longPassTry, stats.passTry);
+  if (longRatio > 0.2) strengths.push("롱패스 전개를 자주 활용합니다");
+
+  // 🔥 박스 안 슛 비중
+  const inBoxRatio = safe(stats.shootInPenalty, stats.shootTotal);
+  if (inBoxRatio > 0.8) strengths.push("박스 안에서 확실하게 마무리합니다");
+  else if (inBoxRatio < 0.5) weaknesses.push("무리한 중거리 시도가 많습니다");
+
+  // 🔥 수비 성공률
+  const tackleRate = safe(stats.tackleSuccess, stats.tackleTry);
+  if (tackleRate > 0.7) strengths.push("수비 성공률이 안정적입니다");
+  else if (tackleRate < 0.4) weaknesses.push("수비 성공률이 낮은 편입니다");
+
+  // 🔥 점유율
+  const possession = stats.possession ?? 0;
+  if (possession > 55) strengths.push("경기 주도권을 잡는 플레이를 합니다");
+  else if (possession < 45) weaknesses.push("상대에게 주도권을 내주는 경우가 많습니다");
+
+  // 🔥 드리블
+  if ((stats.dribble ?? 0) > 80) strengths.push("개인기 활용이 활발합니다");
+
+  return {
+    strengths: strengths.slice(0, 3),
+    weaknesses: weaknesses.slice(0, 3),
+  };
+}
+
+export function getTacticRecommendation({
+  playStyle,
+  formation,
+  weakPositions,
+}: {
+  playStyle: any;
+  formation: string;
+  weakPositions: { spPosition: number; avgRating: number }[];
+}) {
+  const rec: {
+    summary: string;
+    details: string[];
+  } = {
+    summary: "",
+    details: [],
+  };
+
+  // 🔥 스타일 기반
+  if (playStyle.key === "counter") {
+    rec.summary = "역습 중심 전술이 가장 잘 맞습니다.";
+    rec.details.push("수비 라인을 살짝 내리고 빠른 전개에 집중하세요.");
+  } else if (playStyle.key === "tikitaka") {
+    rec.summary = "점유율 기반 빌드업 전술이 잘 맞습니다.";
+    rec.details.push("짧은 패스 + 중앙 전개를 유지하세요.");
+  } else if (playStyle.key === "cross") {
+    rec.summary = "측면 활용 전술이 효과적입니다.";
+    rec.details.push("윙 + 풀백 오버래핑을 적극 활용하세요.");
+  } else {
+    rec.summary = "현재 플레이 스타일을 유지하면서 보완이 필요합니다.";
+  }
+
+  // 🔥 포메이션 기반
+  if (formation === "4-2-3-1") {
+    rec.details.push("CAM 중심 공격 전개를 강화해보세요.");
+  } else if (formation === "4-3-3") {
+    rec.details.push("윙어 침투와 측면 공간 활용이 중요합니다.");
+  } else if (formation === "4-4-2") {
+    rec.details.push("투톱 간 연계 플레이를 적극 활용하세요.");
+  }
+
+  // 🔥 약점 포지션 기반
+  if (weakPositions.length > 0) {
+    const weak = weakPositions[0];
+
+    rec.details.push("가장 취약한 포지션 보완이 필요합니다.");
+  }
+
+  return rec;
+}
