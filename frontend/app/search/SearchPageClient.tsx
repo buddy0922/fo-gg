@@ -730,12 +730,16 @@ const tacticRecommendation = getTacticRecommendation({
     className="text-lg font-extrabold mb-2"
     style={{ color: "var(--text-main)" }}
   >
-    내 전술 추천
+    추천 메타 전술
   </div>
 
   <div className="text-base font-semibold" style={{ color: "var(--text-main)" }}>
     {tacticRecommendation.summary}
   </div>
+
+  <div className="text-sm mt-1" style={{ color: "var(--text-sub)" }}>
+  현재 플레이 스타일, 주 포메이션, 약점 포지션을 기반으로 추천한 운영 방향입니다.
+</div>
 
   <div className="mt-3 space-y-2">
     {tacticRecommendation.details.map((item, idx) => (

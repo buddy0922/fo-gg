@@ -285,17 +285,33 @@ export function getTacticRecommendation({
   };
 
   // 🔥 스타일 기반
-  if (playStyle.key === "counter") {
+    if (playStyle.key === "counter") {
     rec.summary = "역습 중심 전술이 가장 잘 맞습니다.";
+    rec.details.push("추천 메타 포메이션: 4222 / 4231");
     rec.details.push("수비 라인을 살짝 내리고 빠른 전개에 집중하세요.");
   } else if (playStyle.key === "tikitaka") {
     rec.summary = "점유율 기반 빌드업 전술이 잘 맞습니다.";
+    rec.details.push("추천 메타 포메이션: 433 / 4231");
     rec.details.push("짧은 패스 + 중앙 전개를 유지하세요.");
-  } else if (playStyle.key === "cross") {
-    rec.summary = "측면 활용 전술이 효과적입니다.";
-    rec.details.push("윙 + 풀백 오버래핑을 적극 활용하세요.");
+  } else if (playStyle.key === "the_zd" || playStyle.key === "midrange_bomber") {
+    rec.summary = "중거리·ZD 활용 전술이 잘 맞습니다.";
+    rec.details.push("추천 메타 포메이션: 4231 / 4213");
+    rec.details.push("CAM과 ST 주변에서 ZD 각을 자주 만드는 운영이 좋습니다.");
+  } else if (playStyle.key === "box_poacher" || playStyle.key === "finisher") {
+    rec.summary = "박스 안 침투 마무리형 전술이 잘 맞습니다.";
+    rec.details.push("추천 메타 포메이션: 4123 / 4213");
+    rec.details.push("윙 침투와 컷백 빈도를 높여 박스 안 마무리를 노리세요.");
+  } else if (playStyle.key === "catenaccio" || playStyle.key === "safe_defender") {
+    rec.summary = "안정적인 수비 밸런스형 전술이 잘 맞습니다.";
+    rec.details.push("추천 메타 포메이션: 4141 / 4231");
+    rec.details.push("라인 간격 유지와 CDM 중심 수비 보호에 집중하세요.");
+  } else if (playStyle.key === "shot_spammer") {
+    rec.summary = "공격 시도는 많지만 슈팅 선택을 정리할 필요가 있습니다.";
+    rec.details.push("추천 메타 포메이션: 4231 / 433");
+    rec.details.push("중거리 남발보다 박스 안 찬스 비중을 늘리는 전술이 좋습니다.");
   } else {
     rec.summary = "현재 플레이 스타일을 유지하면서 보완이 필요합니다.";
+    rec.details.push("추천 메타 포메이션: 4231");
   }
 
   // 🔥 포메이션 기반
