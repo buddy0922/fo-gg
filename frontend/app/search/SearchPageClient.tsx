@@ -557,10 +557,7 @@ const tacticRecommendation = getTacticRecommendation({
     <div className="max-w-3xl mx-auto p-6 space-y-6">
       <SearchBox initialValue={nickname} />
       
-<div
-  className="border rounded-xl p-6 space-y-4"
-  style={{ background: "var(--surface)", borderColor: "var(--border)" }}
->
+<div className="edge-card p-6 space-y-4">
         <div className="flex items-start justify-between">
           <div>
   <h1 className="flex items-center gap-2 text-2xl font-extrabold">
@@ -587,7 +584,7 @@ const tacticRecommendation = getTacticRecommendation({
     navigator.clipboard.writeText(url);
     alert("전적 링크가 복사되었습니다.");
   }}
-  className="text-xs px-3 py-1 rounded border hover:opacity-80"
+  className="liquid-button text-xs px-3 py-1 rounded hover:opacity-90"
   style={{ borderColor: "var(--border)" }}
 >
   공유
@@ -648,10 +645,7 @@ const tacticRecommendation = getTacticRecommendation({
   stats={styleStats}
 />
 
-<div
-  className="border rounded-xl p-5"
-  style={{ background: "var(--surface)", borderColor: "var(--border)" }}
->
+<div className="edge-card p-5">
   <div
     className="text-lg font-extrabold mb-4"
     style={{ color: "var(--text-main)" }}
@@ -723,8 +717,7 @@ const tacticRecommendation = getTacticRecommendation({
 </div>
 
 <div
-  className="border rounded-xl p-5"
-  style={{ background: "var(--surface)", borderColor: "var(--border)" }}
+  className="edge-card p-5"
 >
   <div
     className="text-lg font-extrabold mb-2"
@@ -754,90 +747,93 @@ const tacticRecommendation = getTacticRecommendation({
   </div>
 </div>
 
-<div
-  className="border rounded-xl p-5"
-  style={{ background: "var(--surface)", borderColor: "var(--border)" }}
->
+<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
   <div
-    className="text-lg font-extrabold mb-2"
-    style={{ color: "var(--text-main)" }}
+    className="edge-card p-5"
   >
-    주 포메이션
-  </div>
-
-  <div className="text-3xl font-extrabold" style={{ color: "var(--text-main)" }}>
-    {formation}
-  </div>
-
-  <div className="text-sm mt-2" style={{ color: "var(--text-sub)" }}>
-  {formationDescription}
-</div>
-</div>
-
-<div
-  className="border rounded-xl p-5"
-  style={{ background: "var(--surface)", borderColor: "var(--border)" }}
->
-  <div className="flex items-center justify-between">
-    <div>
-      <div
-        className="text-lg font-extrabold"
-        style={{ color: "var(--text-main)" }}
-      >
-        최근 경기 기준 평점이 낮았던 포지션
-      </div>
-
-      <div className="text-xs mt-1" style={{ color: "var(--text-sub)" }}>
-        최근 20경기 선수 평점을 기반으로 계산된 포지션입니다.
-      </div>
+    <div
+      className="text-lg font-extrabold mb-2"
+      style={{ color: "var(--text-main)" }}
+    >
+      주 포메이션
     </div>
 
-    <button
-      type="button"
-      onClick={() => setOpenWeakPositions((prev) => !prev)}
-      className="text-sm opacity-70 hover:opacity-100"
-      style={{ color: "var(--text-sub)" }}
+    <div
+      className="text-2xl font-extrabold"
+      style={{ color: "var(--text-main)" }}
     >
-      {openWeakPositions ? "닫기 ▲" : "자세히 보기 ▼"}
-    </button>
+      {formation}
+    </div>
+
+    <div className="text-sm mt-2" style={{ color: "var(--text-sub)" }}>
+      {formationDescription}
+    </div>
   </div>
 
-  <div className="mt-4 space-y-2">
-    {weakPositions.map((p, idx) => (
-      <div
-        key={p.spPosition}
-        className="rounded-lg px-3 py-2"
-        style={{ background: "var(--surface-strong)" }}
-      >
-        <div className="flex items-center justify-between">
-          <div style={{ color: "var(--text-main)" }}>
-            {idx + 1}. {POSITION_LABEL[p.spPosition] ?? `포지션 ${p.spPosition}`}
-          </div>
+  <div
+    className="edge-card p-5"
+  >
+    <div className="flex items-center justify-between">
+      <div>
+        <div
+          className="text-lg font-extrabold"
+          style={{ color: "var(--text-main)" }}
+        >
+          최근 경기 기준 평점이 낮았던 포지션
         </div>
 
-        {openWeakPositions && (
-          <div className="mt-2">
-            {p.topPlayer && (
-              <div className="text-xs" style={{ color: "var(--text-sub)" }}>
-                자주 기용한 선수: {p.topPlayer}
-              </div>
-            )}
+        <div className="text-xs mt-1" style={{ color: "var(--text-sub)" }}>
+          최근 20경기 선수 평점을 기반으로 계산된 포지션입니다.
+        </div>
+      </div>
 
-            <div className="text-xs mt-1" style={{ color: "var(--text-sub)" }}>
-              {p.avgRating < 4
-                ? "최근 경기에서 평점이 가장 낮았던 자리입니다."
-                : p.avgRating < 5
-                ? "최근 경기에서 비교적 평점이 낮게 나온 포지션입니다."
-                : "다른 포지션보다 평점이 조금 낮은 편입니다."}
-            </div>
+      <button
+        type="button"
+        onClick={() => setOpenWeakPositions((prev) => !prev)}
+        className="text-sm opacity-70 hover:opacity-100"
+        style={{ color: "var(--text-sub)" }}
+      >
+        {openWeakPositions ? "닫기 ▲" : "자세히 보기 ▼"}
+      </button>
+    </div>
 
-            <div className="text-xs mt-1" style={{ color: "var(--text-sub)" }}>
-              평균 평점 {p.avgRating.toFixed(2)}
+    <div className="mt-4 space-y-2">
+      {weakPositions.map((p, idx) => (
+        <div
+          key={p.spPosition}
+          className="rounded-lg px-3 py-2"
+          style={{ background: "var(--surface-strong)" }}
+        >
+          <div className="flex items-center justify-between">
+            <div style={{ color: "var(--text-main)" }}>
+              {idx + 1}. {POSITION_LABEL[p.spPosition] ?? `포지션 ${p.spPosition}`}
             </div>
           </div>
-        )}
-      </div>
-    ))}
+
+          {openWeakPositions && (
+            <div className="mt-2">
+              {p.topPlayer && (
+                <div className="text-xs" style={{ color: "var(--text-sub)" }}>
+                  자주 기용한 선수: {p.topPlayer}
+                </div>
+              )}
+
+              <div className="text-xs mt-1" style={{ color: "var(--text-sub)" }}>
+                {p.avgRating < 4
+                  ? "최근 경기에서 평점이 가장 낮았던 자리입니다."
+                  : p.avgRating < 5
+                  ? "최근 경기에서 비교적 평점이 낮게 나온 포지션입니다."
+                  : "다른 포지션보다 평점이 조금 낮은 편입니다."}
+              </div>
+
+              <div className="text-xs mt-1" style={{ color: "var(--text-sub)" }}>
+                평균 평점 {p.avgRating.toFixed(2)}
+              </div>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
   </div>
 </div>
 
@@ -907,18 +903,7 @@ const tacticRecommendation = getTacticRecommendation({
                 }
               `}
             >
-              <div
-                className={`
-                  absolute left-0 top-0 h-full w-1.5 rounded-l-2xl
-                  ${
-                    m.result === "승"
-                     ? "bg-[#4A6CFF]" // 🔵
-                     : m.result === "패"
-                     ? "bg-red-400"
-                     : "bg-yellow-300"
-                  }
-                `}
-              />
+              
 
               <div className="text-xs text-gray-300">
   {formatDate(m.matchDate)} · {type === null ? (m.matchType ?? "알 수 없음") : typeLabel}

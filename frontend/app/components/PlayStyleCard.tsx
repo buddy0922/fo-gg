@@ -98,10 +98,7 @@ export default function PlayStyleCard({ playStyle, stats }: Props) {
   const tackleSuccessRatio = safePercent(tackleSuccess, tackleTry);
 
   return (
-    <div
-      className="border rounded-xl p-5"
-      style={{ background: "var(--surface)", borderColor: "var(--border)" }}
-    >
+    <div className="edge-card p-5">
       <div className="flex items-center justify-between">
         <div
           className="text-lg font-extrabold"
@@ -110,13 +107,7 @@ export default function PlayStyleCard({ playStyle, stats }: Props) {
           플레이 스타일
         </div>
 
-        <button
-          onClick={() => setOpen(!open)}
-          className="text-sm opacity-70 hover:opacity-100"
-          style={{ color: "var(--text-sub)" }}
-        >
-          {open ? "닫기 ▲" : "자세히 보기 ▼"}
-        </button>
+        
       </div>
 
       <div className="mt-2">

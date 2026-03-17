@@ -277,7 +277,7 @@ export default function ShotHeatmap({
 
   return (
     <div
-      className="rounded-2xl p-6 border space-y-6"
+      className="edge-card p-6 border space-y-6"
       style={{ background: "var(--surface)", borderColor: "var(--border)" }}
     >
       <div className="flex items-center justify-between">

@@ -235,7 +235,7 @@ export default function LossDiagnosis({ my, enemy }: { my: Team; enemy: Team }) 
 
   return (
   <div
-    className="border rounded-xl p-5 space-y-4"
+    className="edge-card p-5 space-y-4"
     style={{ background: "var(--surface)", borderColor: "var(--border)" }}
   >
     <div className="flex items-start justify-between gap-4">

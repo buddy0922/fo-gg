@@ -65,7 +65,7 @@ export default function MatchDetailClient({
           상단 스코어
       ============================== */}
       <div
-  className="border rounded-xl p-4"
+  className="edge-card p-4"
   style={{ background: "var(--surface)", borderColor: "var(--border)" }}
 >
         <div className="flex items-center">

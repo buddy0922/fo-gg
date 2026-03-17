@@ -96,10 +96,7 @@ export default function RecentRingSummary({
   )`;
 
   return (
-    <div
-      className="border rounded-xl p-5"
-      style={{ background: "var(--surface)", borderColor: "var(--border)" }}
-    >
+    <div className="edge-card p-5">
       <div className="flex items-center justify-between mb-4">
         <div className="text-lg font-extrabold" style={{ color: "var(--text-main)" }}>
           {title}
