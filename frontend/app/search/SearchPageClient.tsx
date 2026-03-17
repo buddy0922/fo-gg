@@ -120,8 +120,8 @@ const [user, setUser] = useState<null | {
 const [matches, setMatches] = useState<any[]>([]);
 const [nextOffset, setNextOffset] = useState(0);
 const [hasMore, setHasMore] = useState(false);
-
 const [error, setError] = useState<null | { error: string; status?: number; body?: string }>(null);
+const [openWeakPositions, setOpenWeakPositions] = useState(false);
 
 const type = useMemo(() => {
   const raw = sp.get("type"); // 화면 URL용
@@ -188,7 +188,6 @@ if (ouid) {
       // ✅ 서버 응답에서 user/matches/nextOffset/hasMore 받는다고 가정
       setUser(json.user ?? null);
       setMatches(json.matches ?? []);
-      console.log("matches sample", json.matches?.[0]);
       setNextOffset(json.nextOffset ?? PAGE_SIZE);
       setHasMore(Boolean(json.hasMore));
       setError(null);
@@ -413,11 +412,11 @@ const positionRatings = matches.slice(0, 20).reduce((acc, m) => {
   const players = Array.isArray(m.players) ? m.players : [];
 
   for (const p of players) {
-    const pos = p.spPosition;
-    const rating = Number(p.spRating ?? 0);
-    const name = String(p.name ?? p.spName ?? "").trim();
+    const pos = Number(p.spPosition);
+const rating = Number(p.spRating ?? p.status?.spRating ?? 0);
+const name = String(p.name ?? p.spName ?? p.status?.spName ?? "").trim();
 
-    if (!pos || !rating) continue;
+if (Number.isNaN(pos) || pos < 0 || !rating) continue;
 
     if (!acc[pos]) {
       acc[pos] = {
@@ -456,6 +455,42 @@ const weakPositions = (
   })
   .sort((a, b) => a.avgRating - b.avgRating)
   .slice(0, 3);
+
+  const formation = (() => {
+  const recent = matches.slice(0, 20);
+
+  const lineCount = {
+    defence: 0,
+    midfield: 0,
+    attack: 0,
+  };
+
+  for (const m of recent) {
+    const players = Array.isArray(m.players) ? m.players : [];
+
+    for (const p of players) {
+      const pos = Number(p.spPosition);
+
+      if (pos >= 2 && pos <= 8) {
+        lineCount.defence += 1;
+      } else if (pos >= 9 && pos <= 19) {
+        lineCount.midfield += 1;
+      } else if (pos >= 20 && pos <= 27) {
+        lineCount.attack += 1;
+      }
+    }
+  }
+
+  const totalMatches = recent.length || 1;
+
+  const def = Math.round(lineCount.defence / totalMatches);
+  const mid = Math.round(lineCount.midfield / totalMatches);
+  const att = Math.round(lineCount.attack / totalMatches);
+
+  if (!def && !mid && !att) return "분석 불가";
+
+  return `${def}-${mid}-${att}`;
+})();
 
   return (
     <div className="max-w-3xl mx-auto p-6 space-y-6">
@@ -560,38 +595,80 @@ const weakPositions = (
     className="text-lg font-extrabold mb-2"
     style={{ color: "var(--text-main)" }}
   >
-    보완이 필요한 포지션
+    주 포메이션
   </div>
 
-  <div className="space-y-2">
+  <div className="text-3xl font-extrabold" style={{ color: "var(--text-main)" }}>
+    {formation}
+  </div>
+
+  <div className="text-sm mt-2" style={{ color: "var(--text-sub)" }}>
+    최근 20경기 선수 배치를 기반으로 계산된 포메이션입니다.
+  </div>
+</div>
+
+<div
+  className="border rounded-xl p-5"
+  style={{ background: "var(--surface)", borderColor: "var(--border)" }}
+>
+  <div className="flex items-center justify-between">
+    <div>
+      <div
+        className="text-lg font-extrabold"
+        style={{ color: "var(--text-main)" }}
+      >
+        최근 경기 기준 평점이 낮았던 포지션
+      </div>
+
+      <div className="text-xs mt-1" style={{ color: "var(--text-sub)" }}>
+        최근 20경기 선수 평점을 기반으로 계산된 포지션입니다.
+      </div>
+    </div>
+
+    <button
+      type="button"
+      onClick={() => setOpenWeakPositions((prev) => !prev)}
+      className="text-sm opacity-70 hover:opacity-100"
+      style={{ color: "var(--text-sub)" }}
+    >
+      {openWeakPositions ? "닫기 ▲" : "자세히 보기 ▼"}
+    </button>
+  </div>
+
+  <div className="mt-4 space-y-2">
     {weakPositions.map((p, idx) => (
       <div
         key={p.spPosition}
-        className="flex items-center justify-between rounded-lg px-3 py-2"
+        className="rounded-lg px-3 py-2"
         style={{ background: "var(--surface-strong)" }}
       >
-        <div>
-  <div style={{ color: "var(--text-main)" }}>
-    {idx + 1}. {POSITION_LABEL[p.spPosition] ?? `포지션 ${p.spPosition}`}
-  </div>
-
-  {p.topPlayer && (
-    <div className="text-xs mt-1" style={{ color: "var(--text-sub)" }}>
-      자주 기용한 선수: {p.topPlayer}
-    </div>
-  )}
-
-  <div className="text-xs mt-1" style={{ color: "var(--text-sub)" }}>
-    {p.avgRating < 4
-      ? "최근 경기에서 가장 흔들린 자리입니다."
-      : p.avgRating < 4.3
-      ? "조금 더 보완하면 팀 밸런스가 좋아질 수 있습니다."
-      : "상대적으로 덜 강한 포지션입니다."}
-  </div>
-</div>
-        <div style={{ color: "var(--text-sub)" }}>
-          평균 평점 {p.avgRating.toFixed(2)}
+        <div className="flex items-center justify-between">
+          <div style={{ color: "var(--text-main)" }}>
+            {idx + 1}. {POSITION_LABEL[p.spPosition] ?? `포지션 ${p.spPosition}`}
+          </div>
         </div>
+
+        {openWeakPositions && (
+          <div className="mt-2">
+            {p.topPlayer && (
+              <div className="text-xs" style={{ color: "var(--text-sub)" }}>
+                자주 기용한 선수: {p.topPlayer}
+              </div>
+            )}
+
+            <div className="text-xs mt-1" style={{ color: "var(--text-sub)" }}>
+              {p.avgRating < 4
+                ? "최근 경기에서 평점이 가장 낮았던 자리입니다."
+                : p.avgRating < 5
+                ? "최근 경기에서 비교적 평점이 낮게 나온 포지션입니다."
+                : "다른 포지션보다 평점이 조금 낮은 편입니다."}
+            </div>
+
+            <div className="text-xs mt-1" style={{ color: "var(--text-sub)" }}>
+              평균 평점 {p.avgRating.toFixed(2)}
+            </div>
+          </div>
+        )}
       </div>
     ))}
   </div>
