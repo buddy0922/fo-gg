@@ -459,37 +459,134 @@ const weakPositions = (
   const formation = (() => {
   const recent = matches.slice(0, 20);
 
-  const lineCount = {
-    defence: 0,
-    midfield: 0,
-    attack: 0,
+  const avg = {
+    defenders: 0,
+    dm: 0,
+    cm: 0,
+    am: 0,
+    wingers: 0,
+    strikers: 0,
   };
 
   for (const m of recent) {
     const players = Array.isArray(m.players) ? m.players : [];
 
-    for (const p of players) {
-      const pos = Number(p.spPosition);
+    let defenders = 0;
+    let dm = 0;
+    let cm = 0;
+    let am = 0;
+    let wingers = 0;
+    let strikers = 0;
 
-      if (pos >= 2 && pos <= 8) {
-        lineCount.defence += 1;
-      } else if (pos >= 9 && pos <= 19) {
-        lineCount.midfield += 1;
-      } else if (pos >= 20 && pos <= 27) {
-        lineCount.attack += 1;
+    for (const p of players) {
+      const posNum = Number(p.spPosition);
+      const pos = POSITION_LABEL[posNum];
+
+      if (!pos || pos === "GK" || pos === "SUB") continue;
+
+      // 수비수
+      if (["CB", "LCB", "RCB", "SW", "LB", "LWB", "RB", "RWB"].includes(pos)) {
+        defenders += 1;
+        continue;
+      }
+
+      // 수비형 미드필더
+      if (["CDM", "LDM", "RDM"].includes(pos)) {
+        dm += 1;
+        continue;
+      }
+
+      // 중앙 미드필더
+      if (["CM", "LCM", "RCM"].includes(pos)) {
+        cm += 1;
+        continue;
+      }
+
+      // 공격형 미드필더
+      if (["CAM", "LAM", "RAM", "LM", "RM"].includes(pos)) {
+        am += 1;
+        continue;
+      }
+
+      // 윙어
+      if (["LW", "RW"].includes(pos)) {
+        wingers += 1;
+        continue;
+      }
+
+      // 공격수
+      if (["ST", "LS", "RS", "CF", "RF", "LF"].includes(pos)) {
+        strikers += 1;
+        continue;
       }
     }
+
+    avg.defenders += defenders;
+    avg.dm += dm;
+    avg.cm += cm;
+    avg.am += am;
+    avg.wingers += wingers;
+    avg.strikers += strikers;
   }
 
   const totalMatches = recent.length || 1;
 
-  const def = Math.round(lineCount.defence / totalMatches);
-  const mid = Math.round(lineCount.midfield / totalMatches);
-  const att = Math.round(lineCount.attack / totalMatches);
+  const defenders = Math.round(avg.defenders / totalMatches);
+  const dm = Math.round(avg.dm / totalMatches);
+  const cm = Math.round(avg.cm / totalMatches);
+  const am = Math.round(avg.am / totalMatches);
+  const wingers = Math.round(avg.wingers / totalMatches);
+  const strikers = Math.round(avg.strikers / totalMatches);
 
-  if (!def && !mid && !att) return "분석 불가";
+  const midfieldTotal = dm + cm + am;
+  const attackTotal = wingers + strikers;
 
-  return `${def}-${mid}-${att}`;
+  if (!defenders && !midfieldTotal && !attackTotal) return "분석 불가";
+
+  // 4-2-3-1
+  if (defenders === 4 && dm >= 2 && am >= 3 && strikers === 1) {
+    return "4-2-3-1";
+  }
+
+  // 4-2-2-2
+  if (defenders === 4 && dm >= 2 && am >= 2 && strikers >= 2) {
+    return "4-2-2-2";
+  }
+
+  // 4-1-2-3
+  if (defenders === 4 && dm === 1 && cm >= 2 && attackTotal >= 3) {
+    return "4-1-2-3";
+  }
+
+  // 4-3-3
+  if (defenders === 4 && midfieldTotal >= 3 && wingers >= 2 && strikers >= 1) {
+    return "4-3-3";
+  }
+
+  // 4-4-2
+  if (defenders === 4 && midfieldTotal >= 4 && strikers >= 2) {
+    return "4-4-2";
+  }
+
+  // fallback
+  return `${defenders}-${midfieldTotal}-${attackTotal}`;
+})();
+
+const formationDescription = (() => {
+  switch (formation) {
+    case "4-2-3-1":
+      return "가장 안정적인 밸런스형 포메이션입니다. 수비 안정감과 2선 활용이 좋은 편입니다.";
+    case "4-2-2-2":
+      return "중앙 장악과 빠른 공격 전개에 강한 포메이션입니다. 투톱 활용이 핵심입니다.";
+    case "4-1-2-3":
+      return "수미 1명을 중심으로 한 공격적인 4-3-3 계열입니다. 측면과 중앙을 모두 활용합니다.";
+    case "4-3-3":
+      return "가장 대표적인 공격 밸런스형 포메이션입니다. 윙 활용과 전방 압박에 유리합니다.";
+    case "4-4-2":
+      return "전통적인 안정형 포메이션입니다. 라인 간격 유지와 투톱 조합이 장점입니다.";
+    default:
+      return "최근 20경기 선수 배치를 기반으로 계산된 포메이션입니다.";
+  }
 })();
 
   return (
@@ -603,8 +700,8 @@ const weakPositions = (
   </div>
 
   <div className="text-sm mt-2" style={{ color: "var(--text-sub)" }}>
-    최근 20경기 선수 배치를 기반으로 계산된 포메이션입니다.
-  </div>
+  {formationDescription}
+</div>
 </div>
 
 <div
