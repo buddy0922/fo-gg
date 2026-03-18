@@ -565,5 +565,20 @@ html:not(.dark) .edge-card::after {
 html:not(.dark) .edge-card {
   box-shadow:
     0 10px 15px rgba(15,23,42,0.06),
-    0 2px 8px rgba(15,23,42,0.04);
+    0 5px 10px rgba(15,23,42,0.04);
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeInUp 0.35s ease;
 }
